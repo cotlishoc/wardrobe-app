@@ -24,10 +24,11 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('token');  // <--- ОБЯЗАТЕЛЬНО УДАЛЯТЬ ТОКЕН
     localStorage.removeItem('userId');
     setIsAuthenticated(false);
   };
-
+  
   return (
     <Router>
       <div className="app-container">

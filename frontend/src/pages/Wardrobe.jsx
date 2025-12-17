@@ -19,27 +19,32 @@ function Wardrobe() {
 
   useEffect(() => {
     api.get('/items/')
-      .then(res => setItems(res.data))
-      .catch(err => console.error(err));
+      .then(res => {
+        // ПРОВЕРКА: Если пришел массив - сохраняем, если нет - ставим пустой список
+        if (Array.isArray(res.data)) {
+            setItems(res.data);
+        } else {
+            console.error("Ошибка: с сервера пришел не массив!", res.data);
+            setItems([]); 
+        }
+      })
+      .catch(err => {
+          console.error(err);
+          setItems([]); // При ошибке тоже пустой список, чтобы не было белого экрана
+      });
   }, []);
 
   // === ЛОГИКА ФИЛЬТРАЦИИ ===
-  const filteredItems = items.filter(item => {
-    // 1. Поиск по названию (регистронезависимый)
-    if (searchText && !item.name.toLowerCase().includes(searchText.toLowerCase())) {
-      return false;
-    }
-    // 2. Фильтр по Категории
+  // Добавляем защиту "Array.isArray(items)" на всякий случай
+  const filteredItems = Array.isArray(items) ? items.filter(item => {
+    // ... твой код фильтров ...
+    if (searchText && !item.name.toLowerCase().includes(searchText.toLowerCase())) return false;
     if (filterCategory && item.category !== filterCategory) return false;
-    // 3. Фильтр по Цвету
     if (filterColor && item.color !== filterColor) return false;
-    // 4. Фильтр по Сезону
     if (filterSeason && item.season !== filterSeason) return false;
-    // 5. Фильтр по Стилю
     if (filterStyle && item.style !== filterStyle) return false;
-
     return true;
-  });
+  }) : [];
 
   // Сброс всех фильтров
   const clearFilters = () => {
