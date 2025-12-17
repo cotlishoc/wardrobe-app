@@ -1,3 +1,5 @@
+from . import models, schemas, crud, database # Убедись, что crud есть
+from pydantic import BaseModel # Нужно для схемы входа
 from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +11,10 @@ import uuid
 import json
 
 from . import models, schemas, crud, database
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
 
 # Создаем таблицы автоматически (если их нет)
 models.Base.metadata.create_all(bind=database.engine)
@@ -39,12 +45,25 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # --- ЭНДПОИНТЫ ---
 
 # 1. Создать пользователя (для теста)
+
 @app.post("/users/", response_model=schemas.UserResponse)
 def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     return crud.create_user(db=db, user=user)
+
+@app.post("/login")
+def login(login_data: LoginRequest, db: Session = Depends(database.get_db)):
+    # 1. Ищем пользователя по email
+    user = crud.get_user_by_email(db, email=login_data.email)
+    
+    # 2. Если пользователя нет ИЛИ пароль не подходит
+    if not user or not crud.verify_password(login_data.password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Неверная почта или пароль")
+    
+    # 3. Если всё ок - возвращаем ID пользователя
+    return {"status": "ok", "user_id": user.id, "email": user.email}
 
 # 2. Загрузить вещь (С картинкой!)
 @app.post("/items/", response_model=schemas.ItemResponse)

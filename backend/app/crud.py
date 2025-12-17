@@ -1,11 +1,22 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
+from passlib.context import CryptContext
+
+# Настройка шифрования
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
 
 # --- USER ---
 def create_user(db: Session, user: schemas.UserCreate):
-    # В MVP пока храним пароль как есть, в проде нужен хеш!
-    fake_hashed_password = user.password + "notreallyhashed" 
-    db_user = models.User(email=user.email, password_hash=fake_hashed_password)
+    # ТЕПЕРЬ ШИФРУЕМ ПАРОЛЬ ПО-НАСТОЯЩЕМУ
+    hashed_password = get_password_hash(user.password)
+    db_user = models.User(email=user.email, password_hash=hashed_password)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -31,23 +42,9 @@ def get_items(db: Session, user_id: int, skip: int = 0, limit: int = 100):
 
 # --- CAPSULES ---
 def create_capsule(db: Session, capsule: schemas.CapsuleCreate, user_id: int):
-    # 1. Создаем саму капсулу
-    db_capsule = models.Capsule(
-        name=capsule.name,
-        goal=capsule.goal,
-        description=capsule.description,
-        user_id=user_id
-    )
-    
-    # 2. Находим вещи по ID и добавляем их (связь многие-ко-многим)
-    if capsule.item_ids:
-        items = db.query(models.Item).filter(models.Item.id.in_(capsule.item_ids)).all()
-        db_capsule.items = items
-
-    db.add(db_capsule)
-    db.commit()
-    db.refresh(db_capsule)
-    return db_capsule
+    # ... старая логика, если используется ...
+    # Но сейчас мы используем логику в main.py, так что тут можно оставить заглушку
+    pass 
 
 def get_capsules(db: Session, user_id: int):
     return db.query(models.Capsule).filter(models.Capsule.user_id == user_id).all()
