@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import CreatableSelect from 'react-select/creatable';
 import { components } from 'react-select';
+import { ALL_COLORS, ALL_STYLES } from '../data/wardrobeRules';
 
 // Стартовые значения (если память пуста)
 const initialOptions = {
-  category: ['Верх', 'Низ', 'Обувь', 'Платья', 'Аксессуары'],
-  color: ['Черный', 'Белый', 'Бежевый', 'Синий', 'Красный'],
-  style: ['Кэжуал', 'Спорт', 'Офис', 'Вечерний'],
+  category: ['Верх', 'Низ', 'Обувь', 'Платья', 'Верхняя одежда', 'Аксессуары', 'Сумки'],
+  color: ALL_COLORS, // Берем из файла
+  style: ALL_STYLES, // Берем из файла
   season: ['Лето', 'Зима', 'Демисезон', 'Всесезон']
 };
 

@@ -11,6 +11,9 @@ import shutil
 import os
 import uuid
 import json
+from rembg import remove
+from PIL import Image
+import io
 
 from . import models, schemas, crud, database
 
@@ -101,7 +104,7 @@ def login(login_data: LoginRequest, db: Session = Depends(database.get_db)):
 # --- ВЕЩИ (ТЕПЕРЬ С ПРОВЕРКОЙ current_user) ---
 
 @app.post("/items/", response_model=schemas.ItemResponse)
-def create_item(
+async def create_item(
     name: str = Form(...),
     category: str = Form(None),
     color: str = Form(None),
@@ -109,22 +112,35 @@ def create_item(
     season: str = Form(None),
     file: UploadFile = File(...),
     db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user) # <-- ВАЖНО: Получаем юзера из токена
+    current_user: models.User = Depends(get_current_user)
 ):
-    file_extension = file.filename.split(".")[-1]
-    unique_filename = f"{uuid.uuid4()}.{file_extension}"
+    # 1. Читаем файл в память
+    file_content = await file.read()
+    
+    # 2. Удаляем фон с помощью rembg
+    try:
+        input_image = Image.open(io.BytesIO(file_content))
+        output_image = remove(input_image) # <-- МАГИЯ ЗДЕСЬ
+    except Exception as e:
+        print(f"Error removing background: {e}")
+        # Если что-то пошло не так, используем оригинал
+        output_image = Image.open(io.BytesIO(file_content))
+
+    # 3. Генерируем имя файла (всегда сохраняем как .png для прозрачности)
+    unique_filename = f"{uuid.uuid4()}.png"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # 4. Сохраняем обработанную картинку
+    output_image.save(file_path, format="PNG")
     
+    # Ссылка для БД
     db_path = f"static/uploads/{unique_filename}"
     
+    # 5. Записываем в БД
     item_data = schemas.ItemCreate(
         name=name, category=category, color=color, style=style, season=season
     )
     
-    # Используем ID текущего пользователя, а не хардкод 1
     return crud.create_item(db=db, item=item_data, user_id=current_user.id, image_path=db_path)
 
 @app.get("/items/", response_model=List[schemas.ItemResponse])
@@ -143,13 +159,14 @@ def read_item(item_id: int, db: Session = Depends(database.get_db), current_user
     return item
 
 @app.put("/items/{item_id}")
-def update_item(
+async def update_item(
     item_id: int,
     name: str = Form(...),
     category: str = Form(None),
     color: str = Form(None),
     style: str = Form(None),
     season: str = Form(None),
+    file: UploadFile = File(None), # Если прислали новый файл
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -159,11 +176,34 @@ def update_item(
     if db_item.user_id != current_user.id:
          raise HTTPException(status_code=403, detail="Not authorized")
     
+    # Если загрузили новую картинку - удаляем фон
+    if file:
+        # Удаляем старую картинку с диска
+        if db_item.image_path and os.path.exists(db_item.image_path):
+            try: os.remove(db_item.image_path)
+            except: pass
+
+        # Обработка новой
+        file_content = await file.read()
+        try:
+            input_image = Image.open(io.BytesIO(file_content))
+            output_image = remove(input_image)
+        except:
+            output_image = Image.open(io.BytesIO(file_content))
+
+        unique_filename = f"{uuid.uuid4()}.png"
+        file_path = os.path.join(UPLOAD_DIR, unique_filename)
+        output_image.save(file_path, format="PNG")
+        
+        db_item.image_path = f"static/uploads/{unique_filename}"
+
+    # Обновляем остальные поля
     db_item.name = name
     db_item.category = category
     db_item.color = color
     db_item.style = style
     db_item.season = season
+    
     db.commit()
     db.refresh(db_item)
     return db_item
