@@ -39,7 +39,7 @@ function AllCapsules() {
             >
               {capsule.image_path ? (
                 /* Показываем сохраненный скриншот */
-                <img src={`${API_URL}/${capsule.image_path}`} alt={capsule.name} />
+                <img src={`${API_URL}/uploads/${capsule.image_path.replace(/^static\//, '')}`} alt={capsule.name} />
               ) : (
                 /* Фоллбэк, если скриншота нет (старая капсула) */
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', backgroundColor: '#f0f0f0', color: '#999', flexDirection: 'column' }}>
