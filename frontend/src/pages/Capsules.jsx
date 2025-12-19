@@ -338,8 +338,7 @@ function Capsules() {
                 className={`rnd-item ${activeId === item.uniqueId ? 'active' : ''}`}
                 style={{ zIndex: item.zIndex }}
             >
-                {/* image_path может содержать префикс static/uploads/... — нормализуем */}
-                <img src={`${API_URL}/uploads/${item.image_path.replace(/^static\//, '')}`} alt="item" draggable="false" crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
+                <img src={`${API_URL}/${item.image_path}`} alt="item" draggable="false" crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
                 {activeId === item.uniqueId && (
                 <div className="delete-handle" onPointerDown={(e) => { e.stopPropagation(); removeFromCanvas(item.uniqueId); }}>×</div>
                 )}

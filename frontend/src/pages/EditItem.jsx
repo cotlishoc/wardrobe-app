@@ -76,10 +76,9 @@ function EditItem() {
       {/* Фото (не кликабельное тут, просто просмотр) */}
       <div className="upload-area" style={{marginBottom: '20px'}}>
         <img 
-          src={`${API_URL}/${item.image_path}`}
+          src={`${API_URL}/${item.image_path}`} 
           alt={item.name} 
           className="upload-preview"
-          crossOrigin="anonymous"
         />
       </div>
 
