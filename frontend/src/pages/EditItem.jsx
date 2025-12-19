@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import SmartSelect from '../components/SmartSelect';
+import { API_URL } from '../config';
 
 function EditItem() {
   const { id } = useParams();

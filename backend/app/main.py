@@ -14,7 +14,6 @@ import json
 from rembg import remove
 from PIL import Image
 import io
-from fastapi.responses import FileResponse
 
 from . import models, schemas, crud, database
 
@@ -50,8 +49,8 @@ app.add_middleware(
 # Статика
 UPLOAD_DIR = "static/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-# Статические файлы будут монтироваться ниже после определения BASE_UPLOAD_DIR
-# чтобы избежать конфликтов при работе в разных окружениях (локально / в Amvera)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 # --- НАСТРОЙКА ПАПОК ДЛЯ КАРТИНОК ---
 
@@ -71,15 +70,6 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # Мы говорим FastAPI: "Когда просят /static, смотри в папку BASE_UPLOAD_DIR"
 # То есть ссылка http://.../static/uploads/foto.png будет смотреть в /data/uploads/foto.png
 app.mount("/static", StaticFiles(directory=BASE_UPLOAD_DIR), name="static")
-
-# Дополнительный маршрут для отдачи файлов из uploads с явным CORS-заголовком
-@app.get("/static/uploads/{file_path:path}")
-def serve_upload_file(file_path: str):
-    full_path = os.path.join(UPLOAD_DIR, file_path)
-    if not os.path.exists(full_path):
-        raise HTTPException(status_code=404, detail="File not found")
-    # Возвращаем файл и добавляем заголовок Access-Control-Allow-Origin
-    return FileResponse(full_path, headers={"Access-Control-Allow-Origin": "*"})
 
 # --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ AUTH ---
 
