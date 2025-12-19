@@ -13,23 +13,24 @@ function Auth({ onLogin }) {
     e.preventDefault();
     try {
       if (isRegister) {
-        await api.post('/users/', { email, password });
+        await api.post('/users/', { email, password, name });
         alert("Регистрация успешна! Теперь войдите.");
         setIsRegister(false);
       } else {
-        // === ЛОГИКА ВХОДА ===
         const response = await api.post('/login', { email, password });
         
         console.log("Успешный вход:", response.data);
         
-        // СОХРАНЯЕМ ТОКЕН!
         localStorage.setItem('token', response.data.access_token);
-        
         localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('userId', response.data.user_id); 
+        localStorage.setItem('userId', response.data.user_id);
         
-        onLogin(); 
-        navigate('/wardrobe'); 
+        // СОХРАНЯЕМ ИМЯ И ПОЧТУ
+        localStorage.setItem('userName', response.data.name || 'User'); 
+        localStorage.setItem('userEmail', response.data.email);
+
+        onLogin();
+        navigate('/wardrobe');
       }
     } catch (error) {
       console.error(error);

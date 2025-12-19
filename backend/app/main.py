@@ -99,7 +99,13 @@ def login(login_data: LoginRequest, db: Session = Depends(database.get_db)):
     access_token = create_access_token(data={"sub": user.email})
     
     # Возвращаем токен и ID (для удобства фронта)
-    return {"access_token": access_token, "token_type": "bearer", "user_id": user.id}
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer", 
+        "user_id": user.id,
+        "name": user.name,   # <--- Добавили
+        "email": user.email  # <--- Добавили
+    }
 
 # --- ВЕЩИ (ТЕПЕРЬ С ПРОВЕРКОЙ current_user) ---
 

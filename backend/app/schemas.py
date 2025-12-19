@@ -47,10 +47,12 @@ class CapsuleResponse(BaseModel):
 class UserCreate(BaseModel):
     email: str
     password: str
+    name: str  # <--- Теперь обязательно требуем имя при регистрации
 
 class UserResponse(BaseModel):
     id: int
     email: str
+    name: Optional[str] = "User" # <--- Возвращаем имя
 
     class Config:
         from_attributes = True

@@ -1,27 +1,70 @@
+import React from 'react';
+
 function Account({ onLogout }) {
+  // ЧИТАЕМ ИЗ ПАМЯТИ
+  const userName = localStorage.getItem('userName') || 'Пользователь';
+  const userEmail = localStorage.getItem('userEmail') || 'email@example.com';
+
+  // Получаем первую букву для аватара
+  const avatarLetter = userName ? userName[0].toUpperCase() : 'U';
+
   return (
-    <div className="page-padding" style={{ width: '100%' }}>
+    <div style={{ 
+        height: '100%', 
+        minHeight: '100%',
+        display: 'flex', 
+        flexDirection: 'column',
+        justifyContent: 'space-between'
+    }}>
       
-      <div className="mb-20">
-        <h2>Профиль</h2>
+      {/* ВЕРХНЯЯ ЧАСТЬ */}
+      <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          marginTop: '60px', 
+          flex: 1
+      }}>
+        <div style={{ 
+            width: '120px', 
+            height: '120px', 
+            borderRadius: '50%', 
+            backgroundColor: '#fff',
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            fontSize: '50px',
+            color: 'var(--primary-green)',
+            marginBottom: '20px',
+            border: '2px solid var(--primary-green)',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.05)'
+        }}>
+          {avatarLetter}
+        </div>
+        
+        {/* ВЫВОДИМ ИМЯ */}
+        <h2 style={{ margin: 0, color: 'var(--primary-green)' }}>{userName}</h2>
+        
+        {/* ВЫВОДИМ ПОЧТУ */}
+        <p style={{ color: '#999', marginTop: '5px' }}>{userEmail}</p>
       </div>
 
-      <div className="avatar-circle">
-        {/* Заглушка для аватара */}
-        <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" color="#345e37"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-      </div>
-      
-      <div className="account-settings">
-        <h3 style={{ fontSize: '18px', marginBottom: '15px' }}>Настройки</h3>
-        
-        {/* Кнопка выхода стилизованная под Danger (красноватая) или обычная */}
+      {/* НИЖНЯЯ ЧАСТЬ */}
+      <div style={{ marginBottom: '20px', width: '100%' }}>
         <button 
           onClick={onLogout} 
-          className="auth-btn btn-danger"
+          className="auth-btn"
+          style={{ 
+            background: 'white', 
+            color: '#ff4d4d', 
+            border: '1px solid #ff4d4d',
+            fontWeight: '600'
+          }}
         >
           Выйти из аккаунта
         </button>
       </div>
+
     </div>
   );
 }

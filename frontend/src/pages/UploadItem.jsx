@@ -47,31 +47,44 @@ function UploadItem() {
   };
 
   return (
-    // Используем класс page-padding и контейнер без лишних inline-стилей
-    <div className="page-padding" style={{ padding: '20px' }}>
+    // Главный контейнер страницы
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       
-      {/* Шапка как в дизайне, используя .top-bar для выравнивания */}
-      <div className="top-bar top-bar--start">
-        <button onClick={() => navigate(-1)} className="back-btn back-btn--no-pad">
+      {/* Шапка */}
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+        <button onClick={() => navigate(-1)} className="back-btn">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
         </button>
-        <h2 style={{ margin: '0 auto', transform: 'translateX(-12px)' }}>Новая вещь</h2>
+        <h2 style={{ margin: '0 auto', paddingRight: '34px', color: 'var(--primary-green)' }}>Новая вещь</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex-col-gap">
+      {/* ФОРМА - добавляем width: 100% */}
+      <form 
+        onSubmit={handleSubmit} 
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '15px', 
+          width: '100%', // <--- ВАЖНО: Форма на всю ширину
+          flex: 1,
+          paddingBottom: '120px'
+        }}
+      >
         
+        {/* Зона загрузки фото */}
         <label className="upload-area">
           {preview ? (
             <img src={preview} alt="Preview" className="upload-preview" />
           ) : (
-            <div className="upload-placeholder">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#767676" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-              <span style={{marginTop: '10px', color: '#767676', fontSize: '14px'}}>Нажми для фото</span>
+            <div className="upload-placeholder" style={{textAlign: 'center'}}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#767676" strokeWidth="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+              <span style={{display: 'block', marginTop: '10px', fontSize: '14px', color: '#888'}}>Нажми для фото</span>
             </div>
           )}
           <input type="file" onChange={handleFileChange} hidden accept="image/*" />
         </label>
 
+        {/* Поля ввода */}
         <input 
           type="text" 
           className="custom-input"
@@ -81,12 +94,16 @@ function UploadItem() {
           required 
         />
 
+        {/* Selects автоматически растянутся, если у них нет жесткой ширины */}
         <SmartSelect type="category" value={category} onChange={setCategory} placeholder="Категория" />
         <SmartSelect type="color" value={color} onChange={setColor} placeholder="Цвет" />
         <SmartSelect type="style" value={style} onChange={setStyle} placeholder="Стиль" />
         <SmartSelect type="season" value={season} onChange={setSeason} placeholder="Сезон" />
         
-        <button type="submit" className="auth-btn btn-primary" style={{marginTop: '20px', marginBottom: '20px'}}>
+        {/* Распорка */}
+        <div style={{ flex: 1 }}></div>
+
+        <button type="submit" className="auth-btn btn-primary" style={{ marginBottom: '20px' }}>
           Сохранить
         </button>
       </form>

@@ -1,16 +1,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
+/* === 1. ГЛОБАЛЬНЫЙ СБРОС (САМОЕ ВАЖНОЕ) === */
+html, body, #root {
+  height: 100%; /* Обязательно! */
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
 :root {
-  /* ПАЛИТРА: Зеленый и Розовый */
-  --primary-green: #345e37;       /* Основной темно-зеленый (текст, кнопки) */
-  --light-green: #e9f5eb;         /* Светло-зеленый фон (для активных элементов) */
-  
-  --accent-pink: #ffc4d6;         /* Нежно-розовый (фоны полей, плашки) */
-  --deep-pink: #e05d82;           /* Ярко-розовый (акценты, иконки удаления) */
-  
-  --bg-app: #ffffff;              /* Белый фон карточек */
-  --bg-body: #f8f0f2;             /* Розоватый оттенок фона страницы */
-  
+  /* ПАЛИТРА */
+  --primary-green: #345e37;
+  --light-green: #e9f5eb;
+  --accent-pink: #ffc4d6;
+  --deep-pink: #e05d82;
+  --bg-app: #ffffff;
+  --bg-body: #f8f0f2;
   --radius-lg: 24px;
   --radius-md: 16px;
 }
@@ -22,38 +32,45 @@
 }
 
 body {
-  margin: 0;
-  padding: 0;
-  background-color: var(--bg-app); /* Теперь фон везде одинаковый */
-  display: block; /* Убираем flex центрирование */
-  min-height: 100vh;
-  width: 100%;
+  background-color: var(--bg-app);
   color: var(--primary-green);
-  overflow: hidden; /* Убираем скролл самого браузера, скроллить будем только контент */
+  overflow: hidden; /* Скролл только внутри контента */
 }
 
+/* === 2. КОНТЕЙНЕР ПРИЛОЖЕНИЯ === */
 .app-container {
-  width: 100%;
-  max-width: 100%; /* Убираем ограничение ширины 480px */
-  height: 100vh;   /* Высота ровно по экрану */
-  height: 100dvh;  /* Dynamic viewport height (лучше для мобилок с адресной строкой) */
-  background: var(--bg-app);
   display: flex;
   flex-direction: column;
-  position: relative;
-  box-shadow: none; /* Убираем тень "телефона" */
-  border: none;     /* Убираем границы */
+  height: 100%;      /* Берет высоту от #root */
+  height: 100vh;
+  height: 100dvh;    /* Для мобильных */
+  width: 100%;
+  background-color: var(--bg-app);
+  overflow: hidden;
 }
 
+/* === 3. ОБЛАСТЬ КОНТЕНТА === */
 .content {
-  flex: 1;
-  width: 100%;       /* Строго 100% */
-  margin: 0;         /* Убираем авто-отступы */
-  padding: 20px;
-  padding-bottom: 100px;
+  flex: 1;               /* Занимает всё место между верхом и меню */
+  display: flex;         /* Включаем Flex */
+  flex-direction: column;
+  
+  width: 100%;
+  overflow-y: auto;      /* Скролл внутри */
   overflow-x: hidden;
-  /* !!! ДОБАВЛЯЕМ ВОТ ЭТУ СТРОКУ !!! */
-  overflow-y: auto; /* Чтобы работал скролл внутри приложения */
+  
+  padding: 20px;
+  padding-bottom: 100px; /* Место под меню */
+}
+
+/* !!! КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ !!! */
+/* Заставляет любую страницу (Аккаунт, Гардероб) растягиваться на 100% */
+.content > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0; /* Важно для Firefox/старых браузеров */
 }
 
 /* === ТИПОГРАФИКА === */
@@ -61,6 +78,7 @@ h2, h3 {
   color: var(--primary-green);
   text-align: center;
   font-weight: 700;
+  margin-top: 0;
 }
 
 .back-btn {
@@ -71,26 +89,27 @@ h2, h3 {
   padding: 10px;
 }
 
-/* === ПОЛЯ ВВОДА (Розовые) === */
+/* === ПОЛЯ ВВОДА === */
 .custom-input, .search-input {
   width: 100%;
   height: 50px;
-  background-color: var(--accent-pink); /* Розовый фон */
-  border: 2px solid transparent;
-  border-radius: var(--radius-md);
+  background-color: var(--accent-pink);
+  border: none;
+  border-radius: 16px;
   padding: 0 16px;
   font-size: 16px;
   color: var(--primary-green);
   outline: none;
   transition: all 0.2s;
+  box-sizing: border-box; /* Чтобы padding не ломал ширину */
 }
 
 .search-input {
-  padding-left: 40px; /* Место под иконку */
+  padding-left: 40px;
 }
 
 .custom-input::placeholder, .search-input::placeholder {
-  color: #a87b89; /* Темно-розовый для плейсхолдера */
+  color: #a87b89;
 }
 
 .custom-input:focus, .search-input:focus {
@@ -98,7 +117,7 @@ h2, h3 {
   border-color: var(--primary-green);
 }
 
-/* === КНОПКИ (Зеленые) === */
+/* === КНОПКИ === */
 .auth-btn {
   height: 50px;
   border-radius: 25px;
@@ -108,6 +127,14 @@ h2, h3 {
   cursor: pointer;
   width: 100%;
   transition: transform 0.1s;
+  /* Flex для центровки текста/иконок */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-btn:active {
+  transform: scale(0.98);
 }
 
 .btn-primary {
@@ -133,13 +160,15 @@ h2, h3 {
   justify-content: center;
   box-shadow: 0 4px 10px rgba(52, 94, 55, 0.4);
   text-decoration: none;
+  font-size: 24px; /* Чтобы плюсик был виден */
 }
 
-/* === ФИЛЬТРЫ (Чипсы) === */
+/* === ФИЛЬТРЫ === */
 .filter-chip {
   display: inline-flex;
   align-items: center;
-  background: var(--light-green); /* Светло-зеленый */
+  justify-content: center; /* Центровка текста */
+  background: var(--light-green);
   color: var(--primary-green);
   padding: 10px 20px;
   border-radius: 20px;
@@ -148,24 +177,24 @@ h2, h3 {
   border: 1px solid transparent;
   cursor: pointer;
   margin-bottom: 20px;
-}
-
-.filter-chip:hover {
-  border-color: var(--primary-green);
+  white-space: nowrap;
 }
 
 /* === ЗАГРУЗКА ФОТО === */
 .upload-area {
   width: 100%;
+  /* aspect-ratio можно убрать или оставить, если хочешь фиксированную высоту */
+  /* min-height: 300px;  Если убрать aspect-ratio */
   aspect-ratio: 3/4;
-  background-color: var(--accent-pink); /* Розовый фон для фото */
-  border-radius: var(--radius-lg);
+  background-color: var(--accent-pink);
+  border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   overflow: hidden;
-  border: 2px dashed rgba(255, 255, 255, 0.5);
+  margin-bottom: 20px;
+  position: relative;
 }
 
 .upload-preview {
@@ -179,6 +208,7 @@ h2, h3 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 15px;
+  width: 100%; /* Гарантия ширины */
 }
 
 .card {
@@ -186,11 +216,10 @@ h2, h3 {
   overflow: hidden;
   background: white;
   box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-  transition: transform 0.2s;
+  position: relative;
+  aspect-ratio: 3/4; /* Карточки вытянутые как фото */
 }
-.card:active {
-  transform: scale(0.98);
-}
+
 .card img {
   width: 100%;
   height: 100%;
@@ -200,19 +229,20 @@ h2, h3 {
 
 /* === НИЖНЕЕ МЕНЮ === */
 .bottom-nav {
-  position: absolute;
+  position: fixed; /* FIXED - чтобы всегда было на экране */
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
+  max-width: 400px;
   height: 65px;
-  background: var(--primary-green); /* Зеленое меню */
+  background: var(--primary-green);
   border-radius: 35px;
   display: flex;
   justify-content: space-evenly;
   align-items: center;
   box-shadow: 0 10px 25px rgba(52, 94, 55, 0.4);
-  z-index: 50;
+  z-index: 1000;
 }
 
 .nav-item {
@@ -229,234 +259,72 @@ h2, h3 {
   color: white;
   transform: translateY(-2px);
 }
-.nav-item svg {
-  width: 24px;
-  height: 24px;
-  margin-bottom: 4px;
-}
 
-/* === МОДАЛЬНОЕ ОКНО (Overlay) === */
-.filter-modal-overlay {
-  position: fixed; /* <--- ГЛАВНОЕ ИЗМЕНЕНИЕ: фиксируем относительно экрана */
+/* === МОДАЛКИ (ФИЛЬТР, SAVE) === */
+.filter-modal-overlay, .confirm-modal-overlay {
+  position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;    /* Ширина всего экрана */
-  height: 100vh;   /* Высота всего экрана */
-  
-  /* Сохраняем твой зеленый стиль */
-  background: rgba(52, 94, 55, 0.6); 
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: rgba(52, 94, 55, 0.6);
   backdrop-filter: blur(4px);
-  
-  /* Поднимаем выше всего (меню имеет z-index 50, значит тут ставим больше) */
-  z-index: 2000; 
-  
+  z-index: 2000;
   display: flex;
   justify-content: center;
   align-items: center;
-  
   animation: fadeIn 0.2s ease-out;
 }
 
-/* Верхняя панель */
-.top-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.search-container {
-  flex: 1;
-  position: relative;
-}
-.search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--primary-green);
+.filter-modal, .confirm-modal {
+  background: white;
+  width: 85%;
+  max-width: 400px;
+  padding: 25px;
+  border-radius: 30px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
 }
 
-
-
-
-
-.capsule-container .bottom-nav {
-  position: absolute; /* Внутри fixed контейнера */
-  bottom: 20px;
-  z-index: 1000; /* Очень высоко */
-}
-
-/* === КАПСУЛЫ: РАЗДЕЛЕНИЕ ЭКРАНА === */
+/* === КАПСУЛЫ === */
 .capsule-container {
   display: flex;
   flex-direction: column;
-  position: fixed; /* Фиксируем относительно окна браузера */
+  position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;  /* 100% ширины экрана */
-  height: 100vh; /* 100% высоты экрана */
-  height: 100dvh; /* Для мобильных браузеров */
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
   background: white;
-  z-index: 500; /* Поверх всего контента */
-  overflow: hidden; /* Чтобы не появлялось двойных скроллов */
+  z-index: 500;
+  overflow: hidden;
 }
-
-/* 1. ВЕРХНЯЯ ЧАСТЬ - ХОЛСТ (60% экрана) */
-
-/* Контейнер вещи (RND) */
-.rnd-item {
-  display: flex; /* Чтобы картинка растягивалась */
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box; /* Чтобы рамка не ломала размер */
-}
-
-/* Картинка внутри растягивается на всю область RND */
-.rnd-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain; /* Сохраняем пропорции картинки */
-  pointer-events: none; /* Чтобы браузер не пытался перетаскивать саму картинку */
-}
-
-/* Активное состояние (выделено) */
-.rnd-item.active {
-  border: 2px dashed var(--primary-green); /* Зеленая рамка */
-  background: rgba(52, 94, 55, 0.05); /* Легкая подсветка */
-}
-
-
 
 .capsule-canvas {
   flex: 1;
   width: 100%;
   background-color: #ffffff;
   position: relative;
-  overflow: hidden; /* Важно: вещи не должны вылетать за экран */
+  overflow: hidden;
   border-bottom: 2px solid var(--primary-green);
 }
 
-.canvas-hint {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: #aaa;
-  pointer-events: none;
-  text-align: center;
-  font-size: 14px;
-  width: 80%;
-}
-
-/* Вещи на холсте */
-.canvas-item {
-  position: absolute;
-  cursor: grab;
-  width: 100px; /* Чуть меньше по умолчанию */
-  touch-action: none;
-  /* Центрируем точку вставки */
-}
-.canvas-item:active {
-  cursor: grabbing;
-}
-
-.canvas-item img {
-  width: 100%;
-  display: block;
-  pointer-events: none;
-  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2)); /* Тень для реалистичности */
-}
-
-/* Активная вещь */
-.canvas-item.active {
-  z-index: 1000;
-}
-.canvas-item.active img {
-  outline: 2px dashed var(--deep-pink);
-  outline-offset: 2px;
-}
-
-/* Крестик удаления */
-.delete-handle {
-  position: absolute;
-  top: -15px;
-  right: -15px;
-  width: 30px;
-  height: 30px;
-  background: var(--deep-pink); /* Розовый акцент */
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-  z-index: 9999; /* Всегда поверх вещи */
-  touch-action: none;
-}
-
-/* Панель кнопок на холсте */
-.canvas-controls {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  display: flex;
-  gap: 10px;
-  z-index: 200; /* Поверх вещей */
-}
-
-.capsule-btn {
-  height: 40px;
-  padding: 0 20px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.1s;
-}
-
-.capsule-btn:active {
-  transform: scale(0.95);
-}
-
-.btn-save {
-  background: var(--primary-green);
-  color: white;
-}
-
-.btn-reset {
-  background: #fff0f0;
-  color: var(--deep-pink); /* Розовый текст */
-  border: 1px solid var(--deep-pink);
-}
-
-
-
-/* 2. НИЖНЯЯ ЧАСТЬ - ГАРДЕРОБ (40% экрана) */
 .capsule-wardrobe {
   height: 40%;
-  padding-bottom: 100px; /* Большой отступ снизу под меню */
+  padding-bottom: 100px;
+  display: flex;
+  flex-direction: column;
 }
 
-.capsule-wardrobe-header {
-  margin-bottom: 10px;
-  flex-shrink: 0;
-}
-
-/* Сетка вещей внизу */
 .capsule-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Адаптивная сетка */
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
   gap: 10px;
   overflow-y: auto;
-  padding-bottom: 20px;
+  padding: 10px 20px;
 }
+
 .mini-card {
   aspect-ratio: 1;
   background: white;
@@ -464,7 +332,6 @@ h2, h3 {
   overflow: hidden;
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-  position: relative;
 }
 
 .mini-card img {
@@ -473,163 +340,16 @@ h2, h3 {
   object-fit: cover;
 }
 
-/* Иконка плюсика при наведении на вещь снизу (для ПК) */
-.mini-card:hover::after {
-  content: '+';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(52, 94, 55, 0.4);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 30px;
-}
-/* === АВТОРИЗАЦИЯ И ФОРМЫ === */
-.auth-page {
-  width: 100%;
-  max-width: 600px; /* На очень широких экранах не даем разъехаться до бесконечности */
-  margin: 0 auto;   /* Центрируем */
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 80vh; /* Чтобы форма была по центру высоты */
-}
-
-/* Заставляем формы занимать всю ширину */
-.auth-form, form {
-  width: 100%;
-}
-
-/* Вкладки входа/регистрации */
-.auth-tabs {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-bottom: 40px;
-}
-
-.auth-tab {
-  font-size: 18px;
-  font-weight: 600;
-  color: #ccc;
-  cursor: pointer;
-  padding-bottom: 5px;
-  border-bottom: 2px solid transparent;
-}
-
-.auth-tab.active {
-  color: var(--primary-green);
-  border-bottom: 2px solid var(--primary-green);
-}
-
-
-/* === Утилитарные классы для повторного использования === */
-.page-padding {
-  padding-top: 20px;
-  text-align: center;
-}
-.top-bar--start {
-  justify-content: flex-start;
-}
-.back-btn--no-pad {
-  padding-left: 0;
-}
-.flex-col-gap {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.upload-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 28px;
-  color: var(--primary-green);
-  cursor: pointer;
-  line-height: 1;
-}
-.mb-20 {
-  margin-bottom: 20px;
-}
-.chip-fullwidth {
-  width: 100%;
-  justify-content: center;
-  margin-bottom: 0;
-}
-.account-settings {
-  text-align: left;
-}
-
-
-
-/* === ОКНО ПОДТВЕРЖДЕНИЯ (SAVE MODAL) === */
-.confirm-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 99999; /* Выше всего */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  backdrop-filter: blur(2px);
-}
-
-.confirm-modal {
-  background: white;
-  width: 80%;
-  max-width: 320px;
-  border-radius: 20px;
-  padding: 24px;
-  text-align: center;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-  animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.confirm-modal h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 18px;
-}
-
-.confirm-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-@keyframes popIn {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-/* === RND (Исправление ресайза) === */
+/* RND STYLES */
 .rnd-item {
-  box-sizing: border-box; 
-  /* Важно: чтобы картинка не перекрывала границы */
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
-/* Рамка при выделении */
 .rnd-item.active {
   border: 2px dashed var(--primary-green);
-  /* Немного отступа, чтобы рамка не прилипала к картинке */
-  padding: 2px; 
 }
-
-/* РЕАЛЬНАЯ РУЧКА РЕСАЙЗА (Зеленый кружок) */
 .resize-handle {
   width: 20px;
   height: 20px;
@@ -637,10 +357,56 @@ h2, h3 {
   border: 2px solid white;
   border-radius: 50%;
   position: absolute;
-  /* Центрируем кружок относительно угла */
   right: -8px;
   bottom: -8px;
-  cursor: nwse-resize;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  z-index: 9999; /* Поверх всего */
+  z-index: 9999;
+}
+.delete-handle {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 24px;
+  height: 24px;
+  background: var(--deep-pink);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  cursor: pointer;
+}
+
+/* === УТИЛИТЫ === */
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.search-container {
+  flex: 1;
+  position: relative;
+}
+
+/* СКРОЛЛБАР (СКРЫТЬ) */
+.content::-webkit-scrollbar, 
+.capsule-canvas::-webkit-scrollbar, 
+.capsule-grid::-webkit-scrollbar {
+  display: none;
+}
+.content, .capsule-canvas, .capsule-grid {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes popIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }

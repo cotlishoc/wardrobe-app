@@ -16,7 +16,7 @@ def verify_password(plain_password, hashed_password):
 def create_user(db: Session, user: schemas.UserCreate):
     # ТЕПЕРЬ ШИФРУЕМ ПАРОЛЬ ПО-НАСТОЯЩЕМУ
     hashed_password = get_password_hash(user.password)
-    db_user = models.User(email=user.email, password_hash=hashed_password)
+    db_user = models.User(email=user.email, password_hash=hashed_password, name=user.name)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
