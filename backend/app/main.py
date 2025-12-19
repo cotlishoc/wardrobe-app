@@ -199,8 +199,9 @@ async def create_item(
     )
     db_item = crud.create_item(db=db, item=item_data, user_id=current_user.id, image_path=db_path)
 
-    # Запускаем тяжелую обработку в фоне (rembg) для всех окружений
-    background_tasks.add_task(process_image_background, file_path)
+    # Запускаем тяжелую обработку фоном, если это не облако (/data)
+    if BASE_UPLOAD_DIR != "/data":
+        background_tasks.add_task(process_image_background, file_path)
 
     return db_item
 
@@ -229,8 +230,7 @@ async def update_item(
     season: str = Form(None),
     file: UploadFile = File(None), # Если прислали новый файл
     db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user),
-    background_tasks: BackgroundTasks = None
+    current_user: models.User = Depends(get_current_user)
 ):
     db_item = db.query(models.Item).filter(models.Item.id == item_id).first()
     if not db_item:
@@ -263,16 +263,9 @@ async def update_item(
             pass
         logger.info(f"Saved updated item image to: {file_path} (exists={os.path.exists(file_path)})")
         db_item.image_path = f"static/uploads/{unique_filename}"
-        # Добавляем фоновую обработку изображения
-        try:
-            if background_tasks is not None:
-                background_tasks.add_task(process_image_background, file_path)
-            else:
-                # на случай, если background_tasks не передан — запускаем в новом потоке (fallback)
-                import threading
-                threading.Thread(target=process_image_background, args=(file_path,)).start()
-        except Exception:
-            logger.exception("Failed to schedule background image processing")
+        # Фоновая обработка, если локально
+        if BASE_UPLOAD_DIR != "/data":
+            BackgroundTasks().add_task(process_image_background, file_path)
 
     # Обновляем остальные поля
     db_item.name = name
