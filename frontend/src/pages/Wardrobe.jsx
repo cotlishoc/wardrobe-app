@@ -99,7 +99,7 @@ function Wardrobe() {
             className="card" 
             onClick={() => navigate(`/item/${item.id}`)}
           >
-            <img src={`${API_URL}/uploads/${item.image_path.replace(/^static\//, '')}`} alt={item.name} />
+            <img src={`${API_URL}/${item.image_path}`} alt={item.name} />
           </div>
         ))}
       </div>

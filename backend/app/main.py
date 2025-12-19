@@ -72,12 +72,13 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # То есть ссылка http://.../static/uploads/foto.png будет смотреть в /data/uploads/foto.png
 app.mount("/static", StaticFiles(directory=BASE_UPLOAD_DIR), name="static")
 
-# Отдача загруженных файлов через /uploads/{file_path} с CORS-заголовком
-@app.get("/uploads/{file_path:path}")
-def serve_uploads(file_path: str):
+# Дополнительный маршрут для отдачи файлов из uploads с явным CORS-заголовком
+@app.get("/static/uploads/{file_path:path}")
+def serve_upload_file(file_path: str):
     full_path = os.path.join(UPLOAD_DIR, file_path)
     if not os.path.exists(full_path):
         raise HTTPException(status_code=404, detail="File not found")
+    # Возвращаем файл и добавляем заголовок Access-Control-Allow-Origin
     return FileResponse(full_path, headers={"Access-Control-Allow-Origin": "*"})
 
 # --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ AUTH ---
