@@ -12,3 +12,5 @@ python-jose[cryptography]
 rembg
 pillow
 boto3
+mysql-connector-python
+onnxruntime  
