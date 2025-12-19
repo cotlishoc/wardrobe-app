@@ -5,6 +5,7 @@ import SmartSelect from '../components/SmartSelect';
 import BottomNav from '../components/BottomNav';
 import { useParams, useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
+import { API_URL } from '../config';
 
 // !!! ВАЖНО: Импортируем ВСЕ три константы !!!
 import { COLOR_RULES, STYLE_RULES, COLOR_GROUPS } from '../data/wardrobeRules';
@@ -337,7 +338,7 @@ function Capsules() {
                 className={`rnd-item ${activeId === item.uniqueId ? 'active' : ''}`}
                 style={{ zIndex: item.zIndex }}
             >
-                <img src={`/${item.image_path}`} alt="item" draggable="false" crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
+                <img src={`${API_URL}/${item.image_path}`} alt="item" draggable="false" crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
                 {activeId === item.uniqueId && (
                 <div className="delete-handle" onPointerDown={(e) => { e.stopPropagation(); removeFromCanvas(item.uniqueId); }}>×</div>
                 )}
@@ -376,7 +377,7 @@ function Capsules() {
         <div className="capsule-grid">
           {filteredWardrobe.map(item => (
             <div key={item.id} className="mini-card" onClick={() => addToCanvas(item)}>
-              <img src={`/${item.image_path}`} alt={item.name} crossOrigin="anonymous"/>
+              <img  src={`${API_URL}/${item.image_path}`}  alt={item.name} crossOrigin="anonymous"/>
             </div>
           ))}
           {filteredWardrobe.length === 0 && (

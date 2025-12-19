@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../api';
 import { Link, useNavigate } from 'react-router-dom';
 import SmartSelect from '../components/SmartSelect'; // Используем его же для фильтра!
+import { API_URL } from '../config';
 
 function Wardrobe() {
   const navigate = useNavigate();
@@ -98,7 +99,7 @@ function Wardrobe() {
             className="card" 
             onClick={() => navigate(`/item/${item.id}`)}
           >
-            <img src={`http://127.0.0.1:8000/${item.image_path}`} alt={item.name} />
+            <img src={`${API_URL}/${item.image_path}`} alt={item.name} />
           </div>
         ))}
       </div>
