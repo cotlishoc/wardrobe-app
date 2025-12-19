@@ -30,13 +30,17 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30000 # Долгоживущий токен для удобства
 
 # Эта штука говорит FastAPI, где искать токен (в заголовке Authorization)
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 # --- CORS ---
-origins = ["http://localhost:5173", "http://localhost:3000"]
+origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://wardrobe-app-cotlishoc.amvera.io",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,        # явно разрешаем перечисленные origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
