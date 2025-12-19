@@ -1,10 +1,10 @@
 import axios from 'axios';
+import { API_URL } from './config'; // Импортируем ссылку
 
 const api = axios.create({
-  // Из-за настройки прокси в vite.config.js нам не нужен полный URL
-  // Но если прокси нет, используй 'http://127.0.0.1:8000'
-  baseURL: 'http://127.0.0.1:8000', 
+  baseURL: API_URL, // Используем её здесь
 });
+
 
 // --- МАГИЯ ЗДЕСЬ ---
 // Перед каждым запросом этот код проверяет localStorage
