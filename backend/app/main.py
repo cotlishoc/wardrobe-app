@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, status
+from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -49,6 +49,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Дополнительный middleware: явно добавляем Access-Control-Allow-Origin для статики.
+# Некоторые среды (CDN/фронт) могут возвращать статические файлы без нужных CORS заголовков,
+# поэтому здесь безопасно эхо origin, если он разрешён.
+@app.middleware("http")
+async def add_cors_for_static(request, call_next):
+    response = await call_next(request)
+    try:
+        path = request.url.path
+        origin = request.headers.get("origin")
+        if path.startswith("/static"):
+            if origin and origin in origins:
+                response.headers["Access-Control-Allow-Origin"] = origin
+            else:
+                # на случай запросов без Origin или неразрешённых origin — разрешаем localhost для dev
+                response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
+            response.headers["Access-Control-Allow-Methods"] = "GET,OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+    except Exception:
+        pass
+    return response
 
 # Статика
 UPLOAD_DIR = "static/uploads"
@@ -141,6 +162,7 @@ def login(login_data: LoginRequest, db: Session = Depends(database.get_db)):
 
 @app.post("/items/", response_model=schemas.ItemResponse)
 async def create_item(
+    background_tasks: BackgroundTasks,
     name: str = Form(...),
     category: str = Form(None),
     color: str = Form(None),
@@ -150,40 +172,38 @@ async def create_item(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    # 1. Читаем файл в память
+    # Быстро сохраняем файл в PNG (конвертация через PIL без rembg) чтобы не блокировать запрос
     file_content = await file.read()
-    
-    # 2. Удаляем фон с помощью rembg
     try:
         input_image = Image.open(io.BytesIO(file_content))
-        output_image = remove(input_image) # <-- МАГИЯ ЗДЕСЬ
-    except Exception as e:
-        print(f"Error removing background: {e}")
-        # Если что-то пошло не так, используем оригинал
-        output_image = Image.open(io.BytesIO(file_content))
+        unique_filename = f"{uuid.uuid4()}.png"
+        file_path = os.path.join(UPLOAD_DIR, unique_filename)
+        input_image.convert('RGBA').save(file_path, format='PNG')
+    except Exception:
+        # fallback: просто запишем байты как файл
+        unique_filename = f"{uuid.uuid4()}.png"
+        file_path = os.path.join(UPLOAD_DIR, unique_filename)
+        with open(file_path, 'wb') as buffer:
+            buffer.write(file_content)
 
-    # 3. Генерируем имя файла (всегда сохраняем как .png для прозрачности)
-    unique_filename = f"{uuid.uuid4()}.png"
-    file_path = os.path.join(UPLOAD_DIR, unique_filename)
-    
-    # 4. Сохраняем обработанную картинку
-    output_image.save(file_path, format="PNG")
     try:
         os.chmod(file_path, 0o644)
     except Exception:
         pass
-    # Логируем путь и проверяем, что файл действительно создан
     logger.info(f"Saved item image to: {file_path} (exists={os.path.exists(file_path)})")
-    
-    # Ссылка для БД
+
     db_path = f"static/uploads/{unique_filename}"
-    
-    # 5. Записываем в БД
+
     item_data = schemas.ItemCreate(
         name=name, category=category, color=color, style=style, season=season
     )
-    
-    return crud.create_item(db=db, item=item_data, user_id=current_user.id, image_path=db_path)
+    db_item = crud.create_item(db=db, item=item_data, user_id=current_user.id, image_path=db_path)
+
+    # Запускаем тяжелую обработку фоном, если это не облако (/data)
+    if BASE_UPLOAD_DIR != "/data":
+        background_tasks.add_task(process_image_background, file_path)
+
+    return db_item
 
 @app.get("/items/", response_model=List[schemas.ItemResponse])
 def read_items(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
@@ -225,24 +245,27 @@ async def update_item(
             try: os.remove(db_item.image_path)
             except: pass
 
-        # Обработка новой
         file_content = await file.read()
         try:
             input_image = Image.open(io.BytesIO(file_content))
-            output_image = remove(input_image)
-        except:
-            output_image = Image.open(io.BytesIO(file_content))
+            unique_filename = f"{uuid.uuid4()}.png"
+            file_path = os.path.join(UPLOAD_DIR, unique_filename)
+            input_image.convert('RGBA').save(file_path, format='PNG')
+        except Exception:
+            unique_filename = f"{uuid.uuid4()}.png"
+            file_path = os.path.join(UPLOAD_DIR, unique_filename)
+            with open(file_path, 'wb') as buffer:
+                buffer.write(file_content)
 
-        unique_filename = f"{uuid.uuid4()}.png"
-        file_path = os.path.join(UPLOAD_DIR, unique_filename)
-        output_image.save(file_path, format="PNG")
         try:
             os.chmod(file_path, 0o644)
         except Exception:
             pass
         logger.info(f"Saved updated item image to: {file_path} (exists={os.path.exists(file_path)})")
-        
         db_item.image_path = f"static/uploads/{unique_filename}"
+        # Фоновая обработка, если локально
+        if BASE_UPLOAD_DIR != "/data":
+            BackgroundTasks().add_task(process_image_background, file_path)
 
     # Обновляем остальные поля
     db_item.name = name
@@ -378,3 +401,21 @@ def delete_capsule(capsule_id: int, db: Session = Depends(database.get_db), curr
     db.delete(db_capsule)
     db.commit()
     return {"ok": True}
+
+def process_image_background(file_path: str):
+    """Фоновая обработка изображения: попытаться удалить фон с помощью rembg и перезаписать файл."""
+    try:
+        logger.info(f"Background processing started for {file_path}")
+        img = Image.open(file_path)
+        try:
+            processed = remove(img)
+            processed.save(file_path, format='PNG')
+            try:
+                os.chmod(file_path, 0o644)
+            except Exception:
+                pass
+            logger.info(f"Background processing finished for {file_path}")
+        except Exception as e:
+            logger.exception(f"rembg failed: {e}")
+    except Exception as e:
+        logger.exception(f"Background image task error: {e}")
