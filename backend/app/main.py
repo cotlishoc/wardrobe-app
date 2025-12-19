@@ -14,6 +14,10 @@ import json
 from rembg import remove
 from PIL import Image
 import io
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from . import models, schemas, crud, database
 
@@ -49,8 +53,8 @@ app.add_middleware(
 # Статика
 UPLOAD_DIR = "static/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
+# Статические файлы будут монтироваться ниже после определения BASE_UPLOAD_DIR
+# чтобы избежать конфликтов при работе в разных окружениях (локально / в Amvera)
 
 # --- НАСТРОЙКА ПАПОК ДЛЯ КАРТИНОК ---
 
@@ -164,6 +168,12 @@ async def create_item(
     
     # 4. Сохраняем обработанную картинку
     output_image.save(file_path, format="PNG")
+    try:
+        os.chmod(file_path, 0o644)
+    except Exception:
+        pass
+    # Логируем путь и проверяем, что файл действительно создан
+    logger.info(f"Saved item image to: {file_path} (exists={os.path.exists(file_path)})")
     
     # Ссылка для БД
     db_path = f"static/uploads/{unique_filename}"
@@ -226,6 +236,11 @@ async def update_item(
         unique_filename = f"{uuid.uuid4()}.png"
         file_path = os.path.join(UPLOAD_DIR, unique_filename)
         output_image.save(file_path, format="PNG")
+        try:
+            os.chmod(file_path, 0o644)
+        except Exception:
+            pass
+        logger.info(f"Saved updated item image to: {file_path} (exists={os.path.exists(file_path)})")
         
         db_item.image_path = f"static/uploads/{unique_filename}"
 
@@ -274,6 +289,11 @@ def create_capsule(
         file_path = os.path.join(UPLOAD_DIR, unique_filename)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+        try:
+            os.chmod(file_path, 0o644)
+        except Exception:
+            pass
+        logger.info(f"Saved capsule image to: {file_path} (exists={os.path.exists(file_path)})")
         db_path = f"static/uploads/{unique_filename}"
 
     db_capsule = models.Capsule(
@@ -324,6 +344,11 @@ def update_capsule(
         file_path = os.path.join(UPLOAD_DIR, unique_filename)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+        try:
+            os.chmod(file_path, 0o644)
+        except Exception:
+            pass
+        logger.info(f"Saved updated capsule image to: {file_path} (exists={os.path.exists(file_path)})")
         db_capsule.image_path = f"static/uploads/{unique_filename}"
 
     db_capsule.name = name
