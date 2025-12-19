@@ -11,50 +11,18 @@ import shutil
 import os
 import uuid
 import json
-import io
+from rembg import remove
 from PIL import Image
-from rembg import remove, new_session # <--- Добавь new_session
-from contextlib import asynccontextmanager # <--- Добавь это
+import io
 
 from . import models, schemas, crud, database
-
-# --- ЭТА ФУНКЦИЯ ЗАПУСТИТСЯ ПРИ СТАРТЕ СЕРВЕРА ---
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    print("Загрузка модели удаления фона...")
-    try:
-        # Это заставит библиотеку скачать файл u2net.onnx сразу при старте
-        new_session("u2net")
-        print("Модель успешно загружена!")
-    except Exception as e:
-        print(f"Ошибка загрузки модели: {e}")
-    yield
-    print("Выключение сервера...")
 
 # Создаем таблицы
 models.Base.metadata.create_all(bind=database.engine)
 
-# ДОБАВЛЯЕМ lifespan В APP
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
-# --- НАСТРОЙКА ПАПОК ДЛЯ КАРТИНОК ---
 
-# Проверяем, есть ли папка /data (она есть только в Amvera)
-if os.path.exists("/data"):
-    # МЫ В ОБЛАКЕ
-    BASE_UPLOAD_DIR = "/data"
-else:
-    # МЫ ДОМА (Windows/Mac)
-    BASE_UPLOAD_DIR = "static"
-
-# Полный путь: /data/uploads или static/uploads
-UPLOAD_DIR = os.path.join(BASE_UPLOAD_DIR, "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-# --- ВАЖНО: Подключаем статику ---
-# Мы говорим FastAPI: "Когда просят /static, смотри в папку BASE_UPLOAD_DIR"
-# То есть ссылка http://.../static/uploads/foto.png будет смотреть в /data/uploads/foto.png
-app.mount("/static", StaticFiles(directory=BASE_UPLOAD_DIR), name="static")
 
 # --- НАСТРОЙКИ JWT (Секретный ключ) ---
 SECRET_KEY = "my_super_secret_key_change_me_in_production"
@@ -78,6 +46,26 @@ app.add_middleware(
 UPLOAD_DIR = "static/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# --- НАСТРОЙКА ПАПОК ДЛЯ КАРТИНОК ---
+
+# Проверяем, есть ли папка /data (она есть только в Amvera)
+if os.path.exists("/data"):
+    # МЫ В ОБЛАКЕ
+    BASE_UPLOAD_DIR = "/data"
+else:
+    # МЫ ДОМА (Windows/Mac)
+    BASE_UPLOAD_DIR = "static"
+
+# Полный путь: /data/uploads или static/uploads
+UPLOAD_DIR = os.path.join(BASE_UPLOAD_DIR, "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# --- ВАЖНО: Подключаем статику ---
+# Мы говорим FastAPI: "Когда просят /static, смотри в папку BASE_UPLOAD_DIR"
+# То есть ссылка http://.../static/uploads/foto.png будет смотреть в /data/uploads/foto.png
+app.mount("/static", StaticFiles(directory=BASE_UPLOAD_DIR), name="static")
 
 # --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ AUTH ---
 
