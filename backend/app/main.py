@@ -49,8 +49,8 @@ app.add_middleware(
 # Статика
 UPLOAD_DIR = "static/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
+# Статические файлы будут монтироваться ниже после определения BASE_UPLOAD_DIR
+# чтобы избежать конфликтов при работе в разных окружениях (локально / в Amvera)
 
 # --- НАСТРОЙКА ПАПОК ДЛЯ КАРТИНОК ---
 

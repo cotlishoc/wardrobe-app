@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
+import { API_URL } from '../config';
 import { Link, useNavigate } from 'react-router-dom';
 
 function AllCapsules() {
