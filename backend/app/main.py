@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, status, BackgroundTasks
+from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, status, BackgroundTasks, Request, Response
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -68,6 +68,17 @@ async def add_cors_headers(request, call_next):
     except Exception:
         pass
     return response
+
+@app.options("/{full_path:path}")
+async def handle_options(full_path: str, request: Request):
+    origin = request.headers.get("origin", "*")
+    headers = {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "Authorization,Content-Type,Accept",
+        "Access-Control-Allow-Credentials": "true",
+    }
+    return Response(status_code=200, headers=headers)
 
 # Дополнительный middleware: явно добавляем Access-Control-Allow-Origin для статики.
 # Некоторые среды (CDN/фронт) могут возвращать статические файлы без нужных CORS заголовков,
