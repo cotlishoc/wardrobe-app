@@ -19,6 +19,23 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Путь модели rembg
+MODEL_PATH = os.path.expanduser("~/.u2net/u2net.onnx")
+
+
+def _predownload_rembg_model():
+    try:
+        if not os.path.exists(MODEL_PATH):
+            logger.info("Pre-downloading rembg u2net model to speed up first request...")
+            dummy = Image.new('RGBA', (8, 8), (255, 255, 255, 0))
+            try:
+                remove(dummy)
+                logger.info("Rembg model downloaded and ready")
+            except Exception as e:
+                logger.exception(f"rembg predownload failed: {e}")
+    except Exception as e:
+        logger.exception(f"Error in predownload_rembg_model: {e}")
+
 from . import models, schemas, crud, database
 
 # Создаем таблицы
@@ -26,7 +43,10 @@ models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
 
-
+# Регистрируем предзагрузку модели rembg при старте приложения
+@app.on_event("startup")
+def _startup_tasks():
+    _predownload_rembg_model()
 
 # --- НАСТРОЙКИ JWT (Секретный ключ) ---
 SECRET_KEY = "my_super_secret_key_change_me_in_production"
