@@ -325,22 +325,66 @@ function Capsules() {
                 bounds="parent"
                 enableResizing={{ bottomRight: true }}
                 lockAspectRatio={true}
-                minWidth={50} minHeight={50}
+                minWidth={60} minHeight={60} // Немного увеличим минимум для мобилок
+                
+                /* Добавляем стили для области захвата, чтобы было легче попасть пальцем */
+                resizeHandleStyles={{
+                  bottomRight: {
+                    width: '40px', 
+                    height: '40px', 
+                    right: '-15px', 
+                    bottom: '-15px',
+                    cursor: 'nwse-resize'
+                  }
+                }}
+                
+                /* Ваша текущая верстка ручки */
                 resizeHandleComponent={{
                   bottomRight: activeId === item.uniqueId ? <div className="resize-handle" /> : null
                 }}
+                
                 onDragStop={(e, d) => updateItemState(item.uniqueId, { x: d.x, y: d.y })}
                 onResizeStop={(e, direction, ref, delta, position) => {
-                   updateItemState(item.uniqueId, { width: ref.style.width, height: ref.style.height, ...position });
+                  updateItemState(item.uniqueId, { 
+                    width: parseInt(ref.style.width), 
+                    height: parseInt(ref.style.height), 
+                    ...position 
+                  });
                 }}
+                
+                /* Улучшаем фокус на предмете при касании */
                 onMouseDown={(e) => { e.stopPropagation(); bringToFront(item.uniqueId); }}
-                onTouchStart={(e) => { e.stopPropagation(); bringToFront(item.uniqueId); }}
+                onTouchStart={(e) => { 
+                    // На мобилках это событие важнее
+                    e.stopPropagation(); 
+                    bringToFront(item.uniqueId); 
+                }}
+                
                 className={`rnd-item ${activeId === item.uniqueId ? 'active' : ''}`}
                 style={{ zIndex: item.zIndex }}
             >
-                <img src={`${API_URL}/${item.image_path}`} alt="item" draggable="false" crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
+                <img 
+                    src={`${API_URL}/${item.image_path}`} 
+                    alt="item" 
+                    draggable="false" 
+                    crossOrigin="anonymous" 
+                    style={{ 
+                        width: '100%', 
+                        height: '100%', 
+                        objectFit: 'contain', 
+                        pointerEvents: 'none',
+                        /* Добавим фильтр, чтобы видеть, если картинка не прогрузилась */
+                        backgroundColor: 'rgba(0,0,0,0.02)' 
+                    }} 
+                />
                 {activeId === item.uniqueId && (
-                <div className="delete-handle" onPointerDown={(e) => { e.stopPropagation(); removeFromCanvas(item.uniqueId); }}>×</div>
+                    <div 
+                        className="delete-handle" 
+                        style={{ width: '30px', height: '30px', fontSize: '20px' }} // Увеличим кнопку удаления
+                        onPointerDown={(e) => { e.stopPropagation(); removeFromCanvas(item.uniqueId); }}
+                    >
+                        ×
+                    </div>
                 )}
             </Rnd>
             ))}

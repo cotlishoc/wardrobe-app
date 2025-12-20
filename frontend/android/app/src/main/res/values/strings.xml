@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">WardrobeApp</string>
+    <string name="title_activity_main">WardrobeApp</string>
+    <string name="package_name">com.cotlishoc.wardrobe</string>
+    <string name="custom_url_scheme">com.cotlishoc.wardrobe</string>
+</resources>

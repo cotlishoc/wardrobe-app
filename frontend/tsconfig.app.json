@@ -7,6 +7,13 @@
     "module": "ESNext",
     "types": ["vite/client"],
     "skipLibCheck": true,
+    "allowJs": true,           /* Разрешить импорт .js и .jsx */
+    "checkJs": false,          /* Не проверять ошибки внутри самих .js файлов */
+    "noImplicitAny": false,    /* Не ругаться, если тип не определен (any) */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
 
     /* Bundler mode */
     "moduleResolution": "bundler",
