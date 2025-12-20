@@ -44,51 +44,11 @@ origins = [
 ]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],        # разрешаем все origin для устранения проблем CORS на Amvera
+    allow_origins=origins,        # разрешаем все origin для устранения проблем CORS на Amvera
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Глобальный middleware: добавляет CORS заголовки ко всем ответам (эко Origin при наличии).
-@app.middleware("http")
-async def add_cors_headers(request, call_next):
-    response = await call_next(request)
-    try:
-        origin = request.headers.get("origin")
-        if origin:
-            response.headers["Access-Control-Allow-Origin"] = origin
-            # информируем кэширующие прокси, что ответ зависит от Origin
-            response.headers["Vary"] = "Origin"
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-        else:
-            response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Authorization,Content-Type,Accept"
-    except Exception:
-        pass
-    return response
-
-# Дополнительный middleware: явно добавляем Access-Control-Allow-Origin для статики.
-# Некоторые среды (CDN/фронт) могут возвращать статические файлы без нужных CORS заголовков,
-# поэтому здесь безопасно эхо origin, если он разрешён.
-@app.middleware("http")
-async def add_cors_for_static(request, call_next):
-    response = await call_next(request)
-    try:
-        path = request.url.path
-        origin = request.headers.get("origin")
-        if path.startswith("/static"):
-            if origin and origin in origins:
-                response.headers["Access-Control-Allow-Origin"] = origin
-            else:
-                # на случай запросов без Origin или неразрешённых origin — разрешаем localhost для dev
-                response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
-            response.headers["Access-Control-Allow-Methods"] = "GET,OPTIONS"
-            response.headers["Access-Control-Allow-Headers"] = "*"
-    except Exception:
-        pass
-    return response
 
 # Статика
 UPLOAD_DIR = "static/uploads"
@@ -218,9 +178,7 @@ async def create_item(
     )
     db_item = crud.create_item(db=db, item=item_data, user_id=current_user.id, image_path=db_path)
 
-    # Запускаем тяжелую обработку фоном, если это не облако (/data)
-    if BASE_UPLOAD_DIR != "/data":
-        background_tasks.add_task(process_image_background, file_path)
+    background_tasks.add_task(process_image_background, file_path)
 
     return db_item
 
@@ -422,19 +380,26 @@ def delete_capsule(capsule_id: int, db: Session = Depends(database.get_db), curr
     return {"ok": True}
 
 def process_image_background(file_path: str):
-    """Фоновая обработка изображения: попытаться удалить фон с помощью rembg и перезаписать файл."""
     try:
-        logger.info(f"Background processing started for {file_path}")
-        img = Image.open(file_path)
-        try:
-            processed = remove(img)
-            processed.save(file_path, format='PNG')
-            try:
-                os.chmod(file_path, 0o644)
-            except Exception:
-                pass
-            logger.info(f"Background processing finished for {file_path}")
-        except Exception as e:
-            logger.exception(f"rembg failed: {e}")
+        logger.info(f"Начинаю удаление фона для файла: {file_path}")
+        
+        # Проверяем, существует ли файл
+        if not os.path.exists(file_path):
+            logger.error(f"Файл {file_path} не найден!")
+            return
+
+        # Читаем изображение
+        with open(file_path, "rb") as i:
+            input_data = i.read()
+        
+        # Удаляем фон
+        output_data = remove(input_data)
+        
+        # Записываем результат обратно
+        with open(file_path, "wb") as o:
+            o.write(output_data)
+            
+        logger.info(f"Фон успешно удален для: {file_path}")
+        
     except Exception as e:
-        logger.exception(f"Background image task error: {e}")
+        logger.error(f"Ошибка при удалении фона: {str(e)}")
