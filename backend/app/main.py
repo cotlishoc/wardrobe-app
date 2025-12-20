@@ -44,11 +44,30 @@ origins = [
 ]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,        # явно разрешаем перечисленные origin
+    allow_origins=["*"],        # разрешаем все origin для устранения проблем CORS на Amvera
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Глобальный middleware: добавляет CORS заголовки ко всем ответам (эко Origin при наличии).
+@app.middleware("http")
+async def add_cors_headers(request, call_next):
+    response = await call_next(request)
+    try:
+        origin = request.headers.get("origin")
+        if origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            # информируем кэширующие прокси, что ответ зависит от Origin
+            response.headers["Vary"] = "Origin"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        else:
+            response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Authorization,Content-Type,Accept"
+    except Exception:
+        pass
+    return response
 
 # Дополнительный middleware: явно добавляем Access-Control-Allow-Origin для статики.
 # Некоторые среды (CDN/фронт) могут возвращать статические файлы без нужных CORS заголовков,
