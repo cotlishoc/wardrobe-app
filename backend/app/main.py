@@ -16,6 +16,9 @@ from PIL import Image
 import io
 import logging
 
+# Указываем нейросети скачиваться в текущую папку проекта, а не в системную
+os.environ["U2NET_HOME"] = os.path.join(os.getcwd(), ".u2net")
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -44,7 +47,7 @@ origins = [
 ]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,        # разрешаем все origin для устранения проблем CORS на Amvera
+    allow_origins=["*"],        # разрешаем все origin для устранения проблем CORS на Amvera
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
