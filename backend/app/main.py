@@ -403,19 +403,26 @@ def delete_capsule(capsule_id: int, db: Session = Depends(database.get_db), curr
     return {"ok": True}
 
 def process_image_background(file_path: str):
-    """Фоновая обработка изображения: попытаться удалить фон с помощью rembg и перезаписать файл."""
     try:
-        logger.info(f"Background processing started for {file_path}")
-        img = Image.open(file_path)
-        try:
-            processed = remove(img)
-            processed.save(file_path, format='PNG')
-            try:
-                os.chmod(file_path, 0o644)
-            except Exception:
-                pass
-            logger.info(f"Background processing finished for {file_path}")
-        except Exception as e:
-            logger.exception(f"rembg failed: {e}")
+        logger.info(f"Начинаю удаление фона для файла: {file_path}")
+        
+        # Проверяем, существует ли файл
+        if not os.path.exists(file_path):
+            logger.error(f"Файл {file_path} не найден!")
+            return
+
+        # Читаем изображение
+        with open(file_path, "rb") as i:
+            input_data = i.read()
+        
+        # Удаляем фон
+        output_data = remove(input_data)
+        
+        # Записываем результат обратно
+        with open(file_path, "wb") as o:
+            o.write(output_data)
+            
+        logger.info(f"Фон успешно удален для: {file_path}")
+        
     except Exception as e:
-        logger.exception(f"Background image task error: {e}")
+        logger.error(f"Ошибка при удалении фона: {str(e)}")
