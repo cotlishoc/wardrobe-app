@@ -16,9 +16,6 @@ from PIL import Image
 import io
 import logging
 
-# Указываем нейросети скачиваться в текущую папку проекта, а не в системную
-os.environ["U2NET_HOME"] = os.path.join(os.getcwd(), ".u2net")
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -47,11 +44,32 @@ origins = [
 ]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],        # разрешаем все origin для устранения проблем CORS на Amvera
+    allow_origins=origins,        # явно разрешаем перечисленные origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Дополнительный middleware: явно добавляем Access-Control-Allow-Origin для статики.
+# Некоторые среды (CDN/фронт) могут возвращать статические файлы без нужных CORS заголовков,
+# поэтому здесь безопасно эхо origin, если он разрешён.
+@app.middleware("http")
+async def add_cors_for_static(request, call_next):
+    response = await call_next(request)
+    try:
+        path = request.url.path
+        origin = request.headers.get("origin")
+        if path.startswith("/static"):
+            if origin and origin in origins:
+                response.headers["Access-Control-Allow-Origin"] = origin
+            else:
+                # на случай запросов без Origin или неразрешённых origin — разрешаем localhost для dev
+                response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
+            response.headers["Access-Control-Allow-Methods"] = "GET,OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+    except Exception:
+        pass
+    return response
 
 # Статика
 UPLOAD_DIR = "static/uploads"
