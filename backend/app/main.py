@@ -75,9 +75,10 @@ app.add_middleware(
 # Глобальный middleware: добавляет CORS заголовки ко всем ответам (эко Origin при наличии).
 @app.middleware("http")
 async def add_cors_headers(request, call_next):
+    origin = request.headers.get("origin")
+    logger.info(f"add_cors_headers: Origin={origin} Path={request.url.path}")
     response = await call_next(request)
     try:
-        origin = request.headers.get("origin")
         if origin:
             response.headers["Access-Control-Allow-Origin"] = origin
             # информируем кэширующие прокси, что ответ зависит от Origin
@@ -94,6 +95,7 @@ async def add_cors_headers(request, call_next):
 @app.options("/{full_path:path}")
 async def handle_options(full_path: str, request: Request):
     origin = request.headers.get("origin", "*")
+    logger.info(f"OPTIONS preflight for {full_path}, Origin={origin}")
     headers = {
         "Access-Control-Allow-Origin": origin,
         "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",

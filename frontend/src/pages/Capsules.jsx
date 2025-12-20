@@ -135,7 +135,7 @@ function Capsules() {
     // Режим подбора
     if (isMatchingMode && matchSourceItem) {
         // Скрываем вещи той же категории (кроме аксессуаров)
-        if (item.category === matchSourceItem.category && item.category !== 'Аксессуары') return false;
+        if (item.category === matchSourceItem.category && item.category !== 'Аксесуарлары') return false;
         
         return checkCompatibility(matchSourceItem, item);
     }
@@ -259,6 +259,60 @@ function Capsules() {
     }, 100);
   };
 
+  const [touchPointers, setTouchPointers] = useState({});
+  const [initialPinch, setInitialPinch] = useState(null);
+
+  // Pinch handlers
+  const onPointerDown = (e) => {
+    if (e.pointerType === 'touch') {
+      setTouchPointers(prev => ({ ...prev, [e.pointerId]: { x: e.clientX, y: e.clientY } }));
+    }
+  };
+  const onPointerMove = (e) => {
+    if (e.pointerType !== 'touch') return;
+    setTouchPointers(prev => {
+      if (!prev[e.pointerId]) return prev;
+      const updated = { ...prev, [e.pointerId]: { x: e.clientX, y: e.clientY } };
+      const ids = Object.keys(updated);
+      if (ids.length === 2 && activeId) {
+        const p1 = updated[ids[0]];
+        const p2 = updated[ids[1]];
+        const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        if (!initialPinch) {
+          setInitialPinch({ dist, item: activeId, size: canvasItems.find(i => i.uniqueId === activeId) });
+        } else if (initialPinch && initialPinch.item === activeId) {
+          const scale = dist / initialPinch.dist;
+          const base = initialPinch.size;
+          const newW = Math.max(50, Math.round(base.width * scale));
+          const newH = Math.max(50, Math.round(base.height * scale));
+          updateItemState(activeId, { width: newW, height: newH });
+        }
+      }
+      return updated;
+    });
+  };
+  const onPointerUp = (e) => {
+    if (e.pointerType === 'touch') {
+      setTouchPointers(prev => { const p = { ...prev }; delete p[e.pointerId]; return p; });
+      setInitialPinch(null);
+    }
+  };
+
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    el.addEventListener('pointerdown', onPointerDown);
+    el.addEventListener('pointermove', onPointerMove);
+    el.addEventListener('pointerup', onPointerUp);
+    el.addEventListener('pointercancel', onPointerUp);
+    return () => {
+      el.removeEventListener('pointerdown', onPointerDown);
+      el.removeEventListener('pointermove', onPointerMove);
+      el.removeEventListener('pointerup', onPointerUp);
+      el.removeEventListener('pointercancel', onPointerUp);
+    };
+  }, [canvasRef, activeId, canvasItems, initialPinch]);
+
   if (loading) return <div style={{padding: 20}}>Загрузка...</div>;
 
   return (
@@ -372,9 +426,7 @@ function Capsules() {
                         width: '100%', 
                         height: '100%', 
                         objectFit: 'contain', 
-                        pointerEvents: 'none',
-                        /* Добавим фильтр, чтобы видеть, если картинка не прогрузилась */
-                        backgroundColor: 'rgba(0,0,0,0.02)' 
+                        pointerEvents: 'auto'
                     }} 
                 />
                 {activeId === item.uniqueId && (

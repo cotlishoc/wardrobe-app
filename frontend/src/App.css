@@ -25,6 +25,12 @@ html, body, #root {
   --radius-md: 16px;
 }
 
+/* Безопасные отступы для вырезов/шторок на мобильных */
+.app-container {
+  padding-top: env(safe-area-inset-top, 10px);
+  padding-bottom: env(safe-area-inset-bottom, 10px);
+}
+
 * {
   box-sizing: border-box;
   font-family: 'Inter', sans-serif;
@@ -379,6 +385,11 @@ h2, h3 {
   cursor: pointer;
 }
 
+/* Позволяем обрабатывать жесты на элементах холста */
+.rnd-item img {
+  touch-action: none; /* важно для pinch/zoom через touch */
+}
+
 /* === УТИЛИТЫ === */
 .top-bar {
   display: flex;
@@ -412,4 +423,12 @@ h2, h3 {
 @keyframes popIn {
   from { transform: scale(0.8); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
+}
+
+.top-bar, .capsule-canvas {
+  padding-top: calc(env(safe-area-inset-top, 10px) + 8px);
+}
+
+.capsule-canvas .auth-btn {
+  margin-top: 4px; /* смещаем кнопки чуть ниже */
 }
