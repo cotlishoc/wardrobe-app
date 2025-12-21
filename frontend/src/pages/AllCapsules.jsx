@@ -15,6 +15,41 @@ function AllCapsules() {
       .finally(() => setIsLoading(false));
   }, []);
 
+  // --- helper: build possible src candidates for an image path ---
+  const buildSrcCandidates = (path) => {
+    if (!path) return [];
+    const clean = String(path).replace(/^\/+/, '');
+    const candidates = [];
+    if (API_URL) candidates.push(`${API_URL}/${clean}`);
+    candidates.push(`/${clean}`);
+    candidates.push(clean);
+    return Array.from(new Set(candidates.filter(Boolean)));
+  };
+
+  const handleImageError = (e) => {
+    const img = e.target;
+    const raw = img.getAttribute('data-cands') || '[]';
+    let cands;
+    try { cands = JSON.parse(raw); } catch { cands = []; }
+    let idx = parseInt(img.getAttribute('data-err') || '0', 10);
+    idx = Number.isNaN(idx) ? 0 : idx;
+    const next = idx + 1;
+    if (next < cands.length) {
+      img.setAttribute('data-err', String(next));
+      img.src = cands[next];
+    } else {
+      // последний фоллбэк — показываем пустой блок (или можно заменить на placeholder)
+      img.style.display = 'none';
+      const parent = img.parentNode;
+      if (parent) {
+        const fallback = document.createElement('div');
+        fallback.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;background:#f0f0f0;color:#999;flex-direction:column;';
+        fallback.textContent = 'Нет фото';
+        parent.appendChild(fallback);
+      }
+    }
+  };
+
   return (
     <div style={{ padding: '20px', paddingBottom: '90px' }}>
       
@@ -30,32 +65,40 @@ function AllCapsules() {
         <p style={{ textAlign: 'center', color: '#888' }}>Загрузка...</p>
       ) : (
         <div className="grid">
-          {capsules.map((capsule) => (
-            <div 
-                key={capsule.id} 
-                className="card" 
-                onClick={() => navigate(`/capsules/${capsule.id}`)}
-                style={{ cursor: 'pointer', position: 'relative' }}
-            >
-              {capsule.image_path ? (
-                /* Показываем сохраненный скриншот */
-                <img src={`${API_URL}/${capsule.image_path}`} alt={capsule.name} />
-              ) : (
-                /* Фоллбэк, если скриншота нет (старая капсула) */
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', backgroundColor: '#f0f0f0', color: '#999', flexDirection: 'column' }}>
-                   <span>Нет фото</span>
+          {capsules.map((capsule) => {
+            const cands = buildSrcCandidates(capsule.image_path);
+            const src = cands.length ? cands[0] : null;
+            return (
+              <div 
+                  key={capsule.id} 
+                  className="card" 
+                  onClick={() => navigate(`/capsules/${capsule.id}`)}
+                  style={{ cursor: 'pointer', position: 'relative' }}
+              >
+                {src ? (
+                  <img 
+                    src={src} 
+                    alt={capsule.name} 
+                    data-err="0"
+                    data-cands={JSON.stringify(cands)}
+                    onError={handleImageError}
+                  />
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', backgroundColor: '#f0f0f0', color: '#999', flexDirection: 'column' }}>
+                     <span>Нет фото</span>
+                  </div>
+                )}
+                {/* Название капсулы на плашке */}
+                <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0, 
+                    background: 'rgba(255,255,255,0.9)', padding: '5px', 
+                    fontSize: '12px', textAlign: 'center', fontWeight: 'bold'
+                }}>
+                    {capsule.name}
                 </div>
-              )}
-              {/* Название капсулы на плашке */}
-              <div style={{
-                  position: 'absolute', bottom: 0, left: 0, right: 0, 
-                  background: 'rgba(255,255,255,0.9)', padding: '5px', 
-                  fontSize: '12px', textAlign: 'center', fontWeight: 'bold'
-              }}>
-                  {capsule.name}
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {capsules.length === 0 && (
             <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: '50px', color: '#999' }}>

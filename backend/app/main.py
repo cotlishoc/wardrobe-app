@@ -63,6 +63,7 @@ origins = [
     "https://wardrobe-app-cotlishoc.amvera.io",
     "http://localhost",       # ДЛЯ ANDROID
     "capacitor://localhost",   # ДЛЯ IOS
+    "https://wardrobe-app-cotlishoc.amvera.io",
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -76,51 +77,41 @@ app.add_middleware(
 @app.middleware("http")
 async def add_cors_headers(request, call_next):
     origin = request.headers.get("origin")
-    logger.info(f"add_cors_headers: Origin={origin} Path={request.url.path}")
+    # Выполняем запрос к обработчику
     response = await call_next(request)
     try:
-        if origin:
+        # Если пришёл Origin и он разрешён — эхо Origin (требуется для credentials)
+        if origin and (origin in origins or "*" in origins):
             response.headers["Access-Control-Allow-Origin"] = origin
-            # информируем кэширующие прокси, что ответ зависит от Origin
-            response.headers["Vary"] = "Origin"
-            response.headers["Access-Control-Allow-Credentials"] = "true"
         else:
+            # fallback — разрешаем все если нет явного Origin
             response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Authorization,Content-Type,Accept"
+        # Небольшой эвент-хедер для дебага (можно удалить позже)
+        response.headers["X-App-CORS"] = "enabled"
     except Exception:
         pass
     return response
-
-@app.options("/{full_path:path}")
-async def handle_options(full_path: str, request: Request):
-    origin = request.headers.get("origin", "*")
-    logger.info(f"OPTIONS preflight for {full_path}, Origin={origin}")
-    headers = {
-        "Access-Control-Allow-Origin": origin,
-        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-        "Access-Control-Allow-Headers": "Authorization,Content-Type,Accept",
-        "Access-Control-Allow-Credentials": "true",
-    }
-    return Response(status_code=200, headers=headers)
 
 # Дополнительный middleware: явно добавляем Access-Control-Allow-Origin для статики.
 # Некоторые среды (CDN/фронт) могут возвращать статические файлы без нужных CORS заголовков,
 # поэтому здесь безопасно эхо origin, если он разрешён.
 @app.middleware("http")
 async def add_cors_for_static(request, call_next):
+    path = request.url.path
+    origin = request.headers.get("origin")
     response = await call_next(request)
     try:
-        path = request.url.path
-        origin = request.headers.get("origin")
         if path.startswith("/static"):
-            if origin and origin in origins:
+            if origin and (origin in origins or "*" in origins):
                 response.headers["Access-Control-Allow-Origin"] = origin
             else:
-                # на случай запросов без Origin или неразрешённых origin — разрешаем localhost для dev
-                response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
-            response.headers["Access-Control-Allow-Methods"] = "GET,OPTIONS"
-            response.headers["Access-Control-Allow-Headers"] = "*"
+                response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Authorization,Content-Type,Accept"
     except Exception:
         pass
     return response
@@ -479,24 +470,66 @@ def delete_capsule(capsule_id: int, db: Session = Depends(database.get_db), curr
 def process_image_background(file_path: str):
     try:
         logger.info(f"Начинаю удаление фона для файла: {file_path}")
-        
         # Проверяем, существует ли файл
         if not os.path.exists(file_path):
             logger.error(f"Файл {file_path} не найден!")
             return
 
-        # Читаем изображение
-        with open(file_path, "rb") as i:
-            input_data = i.read()
-        
-        # Удаляем фон
-        output_data = remove(input_data)
-        
-        # Записываем результат обратно
-        with open(file_path, "wb") as o:
-            o.write(output_data)
-            
-        logger.info(f"Фон успешно удален для: {file_path}")
-        
+        # Читаем исходные байты
+        with open(file_path, "rb") as f:
+            input_bytes = f.read()
+
+        if not input_bytes:
+            logger.error(f"Файл {file_path} пуст, пропускаю обработку")
+            return
+
+        # Вызываем rembg
+        try:
+            output = remove(input_bytes)
+        except Exception as e:
+            logger.exception(f"rembg.remove failed: {e}")
+            return
+
+        tmp_path = f"{file_path}.rembg.tmp"
+
+        try:
+            # Если rembg вернул байты — создаём Image из байтов
+            if isinstance(output, (bytes, bytearray)):
+                img = Image.open(io.BytesIO(output))
+            elif hasattr(output, 'save'):
+                # Если rembg вернул PIL.Image
+                img = output
+            else:
+                logger.error(f"rembg вернул неподдерживаемый тип: {type(output)}")
+                return
+
+            # Приводим к RGBA и сохраняем как PNG во временный файл
+            img = img.convert('RGBA')
+            img.save(tmp_path, format='PNG', optimize=True)
+
+            # Атомарно заменяем оригинал
+            try:
+                os.replace(tmp_path, file_path)
+            except Exception:
+                # fallback
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+                os.rename(tmp_path, file_path)
+
+            try:
+                os.chmod(file_path, 0o644)
+            except Exception:
+                pass
+
+            logger.info(f"Фон успешно удален для: {file_path}")
+        except Exception as e:
+            logger.exception(f"Ошибка при сохранении результата rembg: {e}")
+            try:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+            except Exception:
+                pass
     except Exception as e:
         logger.error(f"Ошибка при удалении фона: {str(e)}")
