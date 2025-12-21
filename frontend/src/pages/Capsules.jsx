@@ -37,26 +37,45 @@ function Capsules() {
 
   const canvasRef = useRef(null);
 
-  // Попытки загрузки изображения: сначала по API_URL, при ошибке пробуем относительный путь, затем прозрачный placeholder
+  // Определяем, запущено ли в Capacitor/APK (WebView)
+  const isCapacitor = typeof window !== 'undefined' && (
+    (window.location && window.location.protocol && window.location.protocol.startsWith('capacitor')) ||
+    (navigator && navigator.userAgent && navigator.userAgent.includes('Capacitor')) ||
+    Boolean(window.Capacitor)
+  );
+
+  const buildSrcCandidates = (item) => {
+    const path = (item && item.image_path) ? String(item.image_path) : '';
+    const clean = path.replace(/^\/+/, '');
+    const candidates = [];
+    if (API_URL) candidates.push(`${API_URL}/${clean}`);
+    // абсолютный путь на сервере
+    candidates.push(`/${clean}`);
+    // относительный путь
+    candidates.push(clean);
+    // если в path был префикс static, пробуем без него
+    if (clean.startsWith('static/')) candidates.push(clean.replace(/^static\//, ''));
+    return Array.from(new Set(candidates.filter(Boolean)));
+  };
+
+  // Обработчик ошибок загрузки: цикл по кандидатам, затем placeholder
   const handleImageError = (e, item) => {
     try {
       const img = e.target;
-      const attempts = parseInt(img.dataset.err || '0', 10);
-      img.dataset.err = String(attempts + 1);
+      let attempts = parseInt(img.dataset.err || '0', 10);
+      let candidates = [];
+      try { candidates = img.dataset.cands ? JSON.parse(img.dataset.cands) : buildSrcCandidates(item); } catch(_) { candidates = buildSrcCandidates(item); }
 
-      if (attempts === 0) {
-        // первая неудача: попробуем относительный путь (без API_URL)
-        if (item && item.image_path) {
-          img.src = item.image_path.startsWith('/') ? item.image_path.replace(/^\//, '') : item.image_path;
-        } else {
-          img.src = `${API_URL}/${item.image_path}`;
-        }
+      attempts += 1;
+      img.dataset.err = String(attempts);
+      img.dataset.cands = JSON.stringify(candidates);
+
+      if (attempts < candidates.length) {
+        img.src = candidates[attempts];
       } else {
-        // вторая неудача: ставим маленький прозрачный placeholder
         img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
       }
     } catch (err) {
-      // ничего критичного
       e.target.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
     }
   };
@@ -442,11 +461,13 @@ function Capsules() {
                 style={{ zIndex: item.zIndex }}
             >
                 <img 
-                    src={`${API_URL}/${item.image_path}`} 
+                    // используем первый кандидат как начальный src
+                    src={buildSrcCandidates(item)[0]}
                     alt="item" 
                     draggable="false" 
-                    crossOrigin="anonymous" 
+                    {...(isCapacitor ? {} : { crossOrigin: 'anonymous' })}
                     data-err="0"
+                    data-cands={JSON.stringify(buildSrcCandidates(item))}
                     onError={(e) => handleImageError(e, item)}
                     style={{ 
                         width: '100%', 
@@ -499,7 +520,7 @@ function Capsules() {
         <div className="capsule-grid">
           {filteredWardrobe.map(item => (
             <div key={item.id} className="mini-card" onClick={() => addToCanvas(item)}>
-              <img  src={`${API_URL}/${item.image_path}`}  alt={item.name} crossOrigin="anonymous" data-err="0" onError={(e) => handleImageError(e, item)} />
+              <img  src={buildSrcCandidates(item)[0]}  alt={item.name} {...(isCapacitor ? {} : { crossOrigin: 'anonymous' })} data-err="0" data-cands={JSON.stringify(buildSrcCandidates(item))} onError={(e) => handleImageError(e, item)} />
             </div>
           ))}
           {filteredWardrobe.length === 0 && (
