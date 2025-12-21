@@ -9,29 +9,10 @@ function AllCapsules() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCapsules = () => {
-      setIsLoading(true);
-      api.get('/capsules/')
-        .then(res => setCapsules(res.data))
-        .catch(err => console.error(err))
-        .finally(() => setIsLoading(false));
-    };
-
-    fetchCapsules();
-
-    const onStorage = (e) => { if (e.key === 'items_updated') fetchCapsules(); };
-    const onCustom = () => fetchCapsules();
-    const onFocus = () => fetchCapsules();
-
-    window.addEventListener('storage', onStorage);
-    window.addEventListener('items_updated', onCustom);
-    window.addEventListener('focus', onFocus);
-
-    return () => {
-      window.removeEventListener('storage', onStorage);
-      window.removeEventListener('items_updated', onCustom);
-      window.removeEventListener('focus', onFocus);
-    };
+    api.get('/capsules/')
+      .then(res => setCapsules(res.data))
+      .catch(err => console.error(err))
+      .finally(() => setIsLoading(false));
   }, []);
 
   return (

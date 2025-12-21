@@ -45,18 +45,16 @@ function EditItem() {
 
     try {
       await api.put(`/items/${id}`, formData);
-      try { localStorage.setItem('items_updated', Date.now().toString()); window.dispatchEvent(new Event('items_updated')); } catch (e) {}
       navigate('/wardrobe');
     } catch (error) {
       alert('Ошибка при сохранении');
     }
   };
- 
+
   const handleDelete = async () => {
     if (window.confirm("Удалить вещь безвозвратно?")) {
       try {
         await api.delete(`/items/${id}`);
-        try { localStorage.setItem('items_updated', Date.now().toString()); window.dispatchEvent(new Event('items_updated')); } catch (e) {}
         navigate('/wardrobe');
       } catch (error) {
         alert('Ошибка удаления');

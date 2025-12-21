@@ -19,43 +19,20 @@ function Wardrobe() {
   const [filterStyle, setFilterStyle] = useState('');
 
   useEffect(() => {
-    const fetchItems = () => {
-      api.get('/items/')
-        .then(res => {
-          if (Array.isArray(res.data)) setItems(res.data);
-          else {
-            console.error('Ошибка: с сервера пришел не массив!', res.data);
-            setItems([]);
-          }
-        })
-        .catch(err => {
+    api.get('/items/')
+      .then(res => {
+        // ПРОВЕРКА: Если пришел массив - сохраняем, если нет - ставим пустой список
+        if (Array.isArray(res.data)) {
+            setItems(res.data);
+        } else {
+            console.error("Ошибка: с сервера пришел не массив!", res.data);
+            setItems([]); 
+        }
+      })
+      .catch(err => {
           console.error(err);
-          setItems([]);
-        });
-    };
-
-    fetchItems();
-
-    // Обработчики: обновление при storage (другие вкладки), кастомное событие (это же окно) и при возврате в окно
-    const onStorage = (e) => {
-      if (e.key === 'items_updated') fetchItems();
-      if (e.key === 'isAuthenticated' && e.newValue !== 'true') {
-        // Если кто-то вышел из учётки — пробуем перенаправить
-        window.location.href = '/login';
-      }
-    };
-    const onCustom = () => fetchItems();
-    const onFocus = () => fetchItems();
-
-    window.addEventListener('storage', onStorage);
-    window.addEventListener('items_updated', onCustom);
-    window.addEventListener('focus', onFocus);
-
-    return () => {
-      window.removeEventListener('storage', onStorage);
-      window.removeEventListener('items_updated', onCustom);
-      window.removeEventListener('focus', onFocus);
-    };
+          setItems([]); // При ошибке тоже пустой список, чтобы не было белого экрана
+      });
   }, []);
 
   // === ЛОГИКА ФИЛЬТРАЦИИ ===
