@@ -40,12 +40,6 @@ function UploadItem() {
       await api.post('/items/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-
-      // Если категория указана — пытаемся добавить её в пользовательские
-      try {
-        if (category) await api.post('/user-categories', { name: category });
-      } catch (e) { /* ignore */ }
-
       navigate('/wardrobe');
     } catch (error) {
       alert('Ошибка при загрузке');
@@ -78,7 +72,7 @@ function UploadItem() {
       >
         
         {/* Зона загрузки фото */}
-        <label className="upload-area" style={{ zIndex: 5 }}>
+        <label className="upload-area">
           {preview ? (
             <img src={preview} alt="Preview" className="upload-preview" />
           ) : (
