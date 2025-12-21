@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../api';
 import { useNavigate } from 'react-router-dom';
 import SmartSelect from '../components/SmartSelect';
@@ -7,6 +7,7 @@ function UploadItem() {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
   
   // Данные
   const [category, setCategory] = useState('');
@@ -15,15 +16,24 @@ function UploadItem() {
   const [season, setSeason] = useState('');
 
   const navigate = useNavigate();
-
+ 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
+      // Очищаем предыдущий objectURL, если был
+      if (preview) URL.revokeObjectURL(preview);
       setFile(selectedFile);
       setPreview(URL.createObjectURL(selectedFile));
     }
   };
-
+  
+  // Очищаем objectURL при размонтировании
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+ 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) return alert("Пожалуйста, добавьте фото!");
@@ -34,15 +44,29 @@ function UploadItem() {
     formData.append('color', color);
     formData.append('style', style);
     formData.append('season', season);
-    formData.append('file', file);
 
     try {
-      await api.post('/items/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      setLoading(true);
+      // Если файл приходит как объект с uri (в apk/webview), получаем blob
+      if (file && file.uri) {
+        const res = await fetch(file.uri);
+        const blob = await res.blob();
+        formData.append('file', blob, file.name || 'photo.jpg');
+      } else {
+        formData.append('file', file);
+      }
+
+      // НЕ указываем вручную Content-Type — axios/set browser установит правильный boundary
+      await api.post('/items/', formData);
+
+      // Пометка для других экранов, чтобы они могли обновиться
+      try { localStorage.setItem('items_updated', Date.now().toString()); } catch (e) { /* noop */ }
+
       navigate('/wardrobe');
     } catch (error) {
       alert('Ошибка при загрузке');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -103,8 +127,8 @@ function UploadItem() {
         {/* Распорка */}
         <div style={{ flex: 1 }}></div>
 
-        <button type="submit" className="auth-btn btn-primary" style={{ marginBottom: '20px' }}>
-          Сохранить
+        <button type="submit" className="auth-btn btn-primary" style={{ marginBottom: '20px' }} disabled={loading}>
+          {loading ? 'Загрузка...' : 'Сохранить'}
         </button>
       </form>
     </div>
