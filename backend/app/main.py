@@ -117,8 +117,8 @@ async def add_cors_for_static(request, call_next):
             if origin and origin in origins:
                 response.headers["Access-Control-Allow-Origin"] = origin
             else:
-                # на случай запросов без Origin или неразрешённых origin — разрешаем localhost для dev
-                response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
+                # на случай запросов без Origin (WebView в APK) — разрешаем все для статических ресурсов
+                response.headers["Access-Control-Allow-Origin"] = "*"
             response.headers["Access-Control-Allow-Methods"] = "GET,OPTIONS"
             response.headers["Access-Control-Allow-Headers"] = "*"
     except Exception:
@@ -178,56 +178,6 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if user is None:
         raise credentials_exception
     return user
-
-# Папка для пользовательских метаданных (категории, т.п.)
-USER_META_DIR = os.path.join(BASE_UPLOAD_DIR, 'user_meta')
-os.makedirs(USER_META_DIR, exist_ok=True)
-
-def _user_categories_file(user_id):
-    return os.path.join(USER_META_DIR, f'user_{user_id}_categories.json')
-
-def read_user_categories(user_id):
-    path = _user_categories_file(user_id)
-    if not os.path.exists(path):
-        return []
-    try:
-        with open(path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            if isinstance(data, list):
-                return data
-    except Exception:
-        pass
-    return []
-
-def add_user_category(user_id, category_name):
-    if not category_name or not str(category_name).strip():
-        return False
-    try:
-        cats = read_user_categories(user_id)
-        name = str(category_name).strip()
-        if name not in cats:
-            cats.append(name)
-            with open(_user_categories_file(user_id), 'w', encoding='utf-8') as f:
-                json.dump(cats, f, ensure_ascii=False)
-        return True
-    except Exception:
-        return False
-
-# Эндпоинты для пользовательских категорий
-@app.get('/user-categories')
-def get_user_categories(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
-    # Возвращаем список категорий пользователя
-    return read_user_categories(current_user.id)
-
-@app.post('/user-categories')
-def post_user_category(payload: dict, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
-    name = payload.get('name') if isinstance(payload, dict) else None
-    if not name:
-        raise HTTPException(status_code=400, detail='Missing name')
-    ok = add_user_category(current_user.id, name)
-    if not ok:
-        raise HTTPException(status_code=500, detail='Could not save category')
-    return { 'ok': True }
 
 # --- ЭНДПОИНТЫ ---
 
@@ -315,13 +265,6 @@ async def create_item(
 
     background_tasks.add_task(process_image_background, file_path)
 
-    # Сохраняем категорию в списке пользователя, если она есть
-    try:
-        if category:
-            add_user_category(current_user.id, category)
-    except Exception:
-        pass
-
     return db_item
 
 @app.get("/items/", response_model=List[schemas.ItemResponse])
@@ -395,13 +338,7 @@ async def update_item(
         try:
             background_tasks.add_task(process_image_background, file_path)
         except Exception:
-            pass
-
-        # Сохраняем категорию в списке пользователя, если она есть
-        try:
-            if category:
-                add_user_category(current_user.id, category)
-        except Exception:
+            # если что-то пошло не так — ничего критичного
             pass
 
     # Обновляем остальные поля

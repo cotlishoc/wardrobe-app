@@ -276,9 +276,33 @@ function Capsules() {
     setTimeout(async () => {
       try {
         if (!canvasRef.current) return;
+
+        // Сделаем так, чтобы html2canvas получил доступ к изображениям: временно поставим crossOrigin и полные src и дождёмся загрузки
+        const imgs = Array.from(canvasRef.current.querySelectorAll('img'));
+        const originals = imgs.map(img => ({ src: img.src, cross: img.crossOrigin || '', datasetCands: img.dataset.cands || null }));
+
+        const loadPromises = imgs.map((img, idx) => new Promise(resolve => {
+          // выставляем кандидат с API_URL как приоритет
+          const dataCands = img.dataset.cands ? JSON.parse(img.dataset.cands) : null;
+          const first = dataCands && dataCands.length ? dataCands[0] : img.src;
+          try { img.crossOrigin = 'anonymous'; } catch(_) {}
+          img.src = first;
+          if (img.complete && img.naturalWidth > 0) return resolve(true);
+          const onLoad = () => { cleanup(); resolve(true); };
+          const onErr = () => { cleanup(); resolve(false); };
+          const cleanup = () => { img.removeEventListener('load', onLoad); img.removeEventListener('error', onErr); };
+          img.addEventListener('load', onLoad);
+          img.addEventListener('error', onErr);
+          // safety timeout
+          setTimeout(() => { cleanup(); resolve(false); }, 2000);
+        }));
+
+        await Promise.all(loadPromises);
+
         const canvas = await html2canvas(canvasRef.current, {
             useCORS: true, allowTaint: true, backgroundColor: '#ffffff', scale: 2
         });
+
         canvas.toBlob(async (blob) => {
           if (!blob) return alert("Ошибка скриншота");
           const formData = new FormData();
@@ -287,20 +311,32 @@ function Capsules() {
           formData.append('layout', JSON.stringify(canvasItems));
           formData.append('item_ids', JSON.stringify(canvasItems.map(i => i.id)));
 
+          // восстановим оригинальные src/crossOrigin
           try {
-            if (id) {
-              await api.put(`/capsules/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-              alert('Обновлено!');
-            } else {
-              await api.post('/capsules/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-              alert('Создано!');
-            }
-            navigate('/capsules');
-          } catch (e) { alert("Ошибка сохранения"); }
-        }, 'image/png');
-      } catch (err) { alert("Ошибка скриншота"); }
-    }, 100);
-  };
+            imgs.forEach((img, i) => {
+              const orig = originals[i];
+              if (orig) {
+                try { img.crossOrigin = orig.cross || ''; } catch(_) {}
+                img.src = orig.src;
+                if (orig.datasetCands !== null) img.dataset.cands = orig.datasetCands;
+              }
+            });
+          } catch(_) {}
+
+          try {
+             if (id) {
+               await api.put(`/capsules/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+               alert('Обновлено!');
+             } else {
+               await api.post('/capsules/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+               alert('Создано!');
+             }
+             navigate('/capsules');
+           } catch (e) { alert("Ошибка сохранения"); }
+         }, 'image/png');
+       } catch (err) { alert("Ошибка скриншота"); }
+     }, 100);
+   };
 
   const [touchPointers, setTouchPointers] = useState({});
   const [initialPinch, setInitialPinch] = useState(null);
@@ -360,6 +396,7 @@ function Capsules() {
 
   return (
     <div className="capsule-container">
+      <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
       
       {/* ХОЛСТ */}
       <div 
@@ -475,6 +512,7 @@ function Capsules() {
                         objectFit: 'contain', 
                         pointerEvents: 'auto'
                     }} 
+                    data-image="true" data-uniqueid={item.uniqueId}
                 />
                 {activeId === item.uniqueId && (
                     <div 
@@ -554,6 +592,7 @@ function Capsules() {
                 <button onClick={() => setIsFilterOpen(false)} style={{background:'none', border:'none', fontSize:'28px', color: 'var(--primary-green)'}}>&times;</button>
             </div>
             <SmartSelect type="category" value={filterCategory} onChange={setFilterCategory} placeholder="Категория" />
+            
             <SmartSelect type="color" value={filterColor} onChange={setFilterColor} placeholder="Цвет" />
             <SmartSelect type="season" value={filterSeason} onChange={setFilterSeason} placeholder="Сезон" />
             <SmartSelect type="style" value={filterStyle} onChange={setFilterStyle} placeholder="Стиль" />

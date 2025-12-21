@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import CreatableSelect from 'react-select/creatable';
 import { components } from 'react-select';
 import { ALL_COLORS, ALL_STYLES } from '../data/wardrobeRules';
@@ -13,6 +14,8 @@ const initialOptions = {
 
 function SmartSelect({ type, value, onChange, placeholder }) {
   const [options, setOptions] = useState([]);
+  const [open, setOpen] = useState(false);
+  const ref = useRef();
   const storageKey = `wardrobe_options_${type}`;
 
   // 1. Загрузка опций из LocalStorage при запуске
@@ -74,8 +77,14 @@ function SmartSelect({ type, value, onChange, placeholder }) {
   // Текущее выбранное значение
   const currentValue = value ? { label: value, value: value } : null;
 
+  useEffect(() => {
+    const onDocClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, []);
+
   return (
-    <div style={{ marginBottom: '15px' }}>
+    <div ref={ref} style={{position: 'relative', marginBottom: '10px'}}>
       <label style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '5px', display: 'block' }}>
         {placeholder}
       </label>
@@ -136,6 +145,14 @@ function SmartSelect({ type, value, onChange, placeholder }) {
         })
       }}
       />
+      {open && ReactDOM.createPortal(
+        <div className="smart-select-dropdown" style={{position: 'absolute', left: 0, top: '100%', background: '#fff', boxShadow: '0 6px 20px rgba(0,0,0,0.15)', padding: 8, borderRadius: 8}}>
+          {options.map(opt => (
+            <div key={opt} style={{padding: '8px 12px', cursor: 'pointer'}} onClick={() => { onChange(opt); setOpen(false); }}>{opt}</div>
+          ))}
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
