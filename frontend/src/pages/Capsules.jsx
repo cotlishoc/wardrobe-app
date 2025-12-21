@@ -14,10 +14,6 @@ function Capsules() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // В web-окружении включаем crossOrigin для корректной работы html2canvas;
-  // в APK/webview оставляем undefined, чтобы не зависеть от CORS.
-  const crossOriginEnabled = typeof window !== 'undefined' && window.location.protocol.startsWith('http');
-
   const [wardrobeItems, setWardrobeItems] = useState([]);
   const [canvasItems, setCanvasItems] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -237,30 +233,8 @@ function Capsules() {
     setTimeout(async () => {
       try {
         if (!canvasRef.current) return;
-        // Перед скриншотом подгружаем все картинки как blob и временно заменяем src,
-        // чтобы html2canvas не сталкивался с CORS в вебвью/APK.
-        const imgs = Array.from(canvasRef.current.querySelectorAll('img'));
-        const originalSrcs = [];
-        const blobUrls = [];
-        for (const img of imgs) {
-          originalSrcs.push(img.src);
-          try {
-            const res = await fetch(img.src, { mode: 'cors' });
-            if (res.ok) {
-              const blob = await res.blob();
-              const url = URL.createObjectURL(blob);
-              img.src = url;
-              blobUrls.push(url);
-            } else {
-              blobUrls.push(null);
-            }
-          } catch (e) {
-            blobUrls.push(null);
-          }
-        }
-
         const canvas = await html2canvas(canvasRef.current, {
-            useCORS: true, allowTaint: false, backgroundColor: '#ffffff', scale: 2
+            useCORS: true, allowTaint: true, backgroundColor: '#ffffff', scale: 2
         });
         canvas.toBlob(async (blob) => {
           if (!blob) return alert("Ошибка скриншота");
@@ -281,16 +255,6 @@ function Capsules() {
             navigate('/capsules');
           } catch (e) { alert("Ошибка сохранения"); }
         }, 'image/png');
-
-        // Восстанавливаем оригинальные src и очищаем blob URLs
-        imgs.forEach((img, idx) => {
-          if (originalSrcs[idx]) {
-            img.src = originalSrcs[idx];
-          }
-          if (blobUrls[idx]) {
-            URL.revokeObjectURL(blobUrls[idx]);
-          }
-        });
       } catch (err) { alert("Ошибка скриншота"); }
     }, 100);
   };
@@ -457,7 +421,7 @@ function Capsules() {
                     src={`${API_URL}/${item.image_path}`} 
                     alt="item" 
                     draggable="false" 
-                    crossOrigin={crossOriginEnabled ? 'anonymous' : undefined} 
+                    crossOrigin="anonymous" 
                     style={{ 
                         width: '100%', 
                         height: '100%', 
