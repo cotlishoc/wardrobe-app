@@ -25,11 +25,6 @@ html, body, #root {
   --radius-md: 16px;
 }
 
-/* Безопасные отступы для вырезов/шторок на мобильных */
-.app-container {
-  padding-top: env(safe-area-inset-top, 10px);
-  padding-bottom: env(safe-area-inset-bottom, 10px);
-}
 
 * {
   box-sizing: border-box;
@@ -45,8 +40,6 @@ body {
 
 /* === 2. КОНТЕЙНЕР ПРИЛОЖЕНИЯ === */
 .app-container {
-  padding-top: env(safe-area-inset-top, 20px); 
-  padding-bottom: env(safe-area-inset-bottom, 20px);
   display: flex;
   flex-direction: column;
   height: 100%;      /* Берет высоту от #root */
