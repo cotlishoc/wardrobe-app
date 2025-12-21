@@ -26,7 +26,8 @@ api.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token');
-      localStorage.removeItem('isAuthenticated');
+      localStorage.setItem('isAuthenticated', 'false');
+      try { window.dispatchEvent(new Event('auth_changed')); } catch (e) {}
       window.location.href = '/login';
     }
     return Promise.reject(error);

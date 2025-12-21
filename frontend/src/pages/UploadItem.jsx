@@ -59,8 +59,12 @@ function UploadItem() {
       // НЕ указываем вручную Content-Type — axios/set browser установит правильный boundary
       await api.post('/items/', formData);
 
-      // Пометка для других экранов, чтобы они могли обновиться
-      try { localStorage.setItem('items_updated', Date.now().toString()); } catch (e) { /* noop */ }
+      // Пометка для других экранов/вкладок, чтобы они могли обновиться
+      try {
+        localStorage.setItem('items_updated', Date.now().toString());
+        // dispatch события для текущего окна (storage событие не сработает в том же окне)
+        window.dispatchEvent(new Event('items_updated'));
+      } catch (e) { /* noop */ }
 
       navigate('/wardrobe');
     } catch (error) {
