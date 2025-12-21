@@ -44,9 +44,6 @@ function EditItem() {
     formData.append('season', season || '');
 
     try {
-      // Сохраняем пользовательскую категорию
-      try { if (category) await api.post('/user-categories', { name: category }); } catch(e){}
-
       await api.put(`/items/${id}`, formData);
       navigate('/wardrobe');
     } catch (error) {
@@ -83,7 +80,6 @@ function EditItem() {
           src={`${API_URL}/${item.image_path}`} 
           alt={item.name} 
           className="upload-preview"
-          style={{ zIndex: 5 }}
         />
       </div>
 

@@ -117,8 +117,8 @@ async def add_cors_for_static(request, call_next):
             if origin and origin in origins:
                 response.headers["Access-Control-Allow-Origin"] = origin
             else:
-                # на случай запросов без Origin (WebView в APK) — разрешаем все для статических ресурсов
-                response.headers["Access-Control-Allow-Origin"] = "*"
+                # на случай запросов без Origin или неразрешённых origin — разрешаем localhost для dev
+                response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
             response.headers["Access-Control-Allow-Methods"] = "GET,OPTIONS"
             response.headers["Access-Control-Allow-Headers"] = "*"
     except Exception:
