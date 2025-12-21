@@ -285,6 +285,7 @@ def read_item(item_id: int, db: Session = Depends(database.get_db), current_user
 @app.put("/items/{item_id}")
 async def update_item(
     item_id: int,
+    background_tasks: BackgroundTasks,
     name: str = Form(...),
     category: str = Form(None),
     color: str = Form(None),
@@ -333,9 +334,12 @@ async def update_item(
             pass
         logger.info(f"Saved updated item image to: {file_path} (exists={os.path.exists(file_path)})")
         db_item.image_path = f"static/uploads/{unique_filename}"
-        # Фоновая обработка, если локально
-        if BASE_UPLOAD_DIR != "/data":
-            BackgroundTasks().add_task(process_image_background, file_path)
+        # Запускаем фоновую обработку изображения (вне зависимости от среды)
+        try:
+            background_tasks.add_task(process_image_background, file_path)
+        except Exception:
+            # если что-то пошло не так — ничего критичного
+            pass
 
     # Обновляем остальные поля
     db_item.name = name
