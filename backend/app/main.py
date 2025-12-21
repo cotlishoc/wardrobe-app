@@ -23,18 +23,15 @@ logger = logging.getLogger(__name__)
 MODEL_PATH = os.path.expanduser("~/.u2net/u2net.onnx")
 
 
+# Регистрируем предзагрузку модели rembg при старте приложения
+#@app.on_event("startup")
+#def _startup_tasks():
+#    _predownload_rembg_model()
+
+# Отключенная функция предзагрузки rembg — оставляем заглушку для совместимости
 def _predownload_rembg_model():
-    try:
-        if not os.path.exists(MODEL_PATH):
-            logger.info("Pre-downloading rembg u2net model to speed up first request...")
-            dummy = Image.new('RGBA', (8, 8), (255, 255, 255, 0))
-            try:
-                remove(dummy)
-                logger.info("Rembg model downloaded and ready")
-            except Exception as e:
-                logger.exception(f"rembg predownload failed: {e}")
-    except Exception as e:
-        logger.exception(f"Error in predownload_rembg_model: {e}")
+    logger.info("rembg predownload disabled in this build")
+    return
 
 from . import models, schemas, crud, database
 
@@ -42,11 +39,6 @@ from . import models, schemas, crud, database
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
-
-# Регистрируем предзагрузку модели rembg при старте приложения
-@app.on_event("startup")
-def _startup_tasks():
-    _predownload_rembg_model()
 
 # --- НАСТРОЙКИ JWT (Секретный ключ) ---
 SECRET_KEY = "my_super_secret_key_change_me_in_production"
@@ -255,7 +247,8 @@ async def create_item(
     )
     db_item = crud.create_item(db=db, item=item_data, user_id=current_user.id, image_path=db_path)
 
-    background_tasks.add_task(process_image_background, file_path)
+    # background_tasks.add_task(process_image_background, file_path)  # rembg disabled
+    logger.info("process_image_background task skipped (rembg disabled)")
 
     return db_item
 
@@ -328,7 +321,8 @@ async def update_item(
         db_item.image_path = f"static/uploads/{unique_filename}"
         # Запускаем фоновую обработку изображения (вне зависимости от среды)
         try:
-            background_tasks.add_task(process_image_background, file_path)
+            # background_tasks.add_task(process_image_background, file_path)  # rembg disabled
+            logger.info("process_image_background task skipped (rembg disabled)")
         except Exception:
             # если что-то пошло не так — ничего критичного
             pass
@@ -469,68 +463,6 @@ def delete_capsule(capsule_id: int, db: Session = Depends(database.get_db), curr
     return {"ok": True}
 
 def process_image_background(file_path: str):
-    try:
-        logger.info(f"Начинаю удаление фона для файла: {file_path}")
-        # Проверяем, существует ли файл
-        if not os.path.exists(file_path):
-            logger.error(f"Файл {file_path} не найден!")
-            return
-
-        # Читаем исходные байты
-        with open(file_path, "rb") as f:
-            input_bytes = f.read()
-
-        if not input_bytes:
-            logger.error(f"Файл {file_path} пуст, пропускаю обработку")
-            return
-
-        # Вызываем rembg
-        try:
-            output = remove(input_bytes)
-        except Exception as e:
-            logger.exception(f"rembg.remove failed: {e}")
-            return
-
-        tmp_path = f"{file_path}.rembg.tmp"
-
-        try:
-            # Если rembg вернул байты — создаём Image из байтов
-            if isinstance(output, (bytes, bytearray)):
-                img = Image.open(io.BytesIO(output))
-            elif hasattr(output, 'save'):
-                # Если rembg вернул PIL.Image
-                img = output
-            else:
-                logger.error(f"rembg вернул неподдерживаемый тип: {type(output)}")
-                return
-
-            # Приводим к RGBA и сохраняем как PNG во временный файл
-            img = img.convert('RGBA')
-            img.save(tmp_path, format='PNG', optimize=True)
-
-            # Атомарно заменяем оригинал
-            try:
-                os.replace(tmp_path, file_path)
-            except Exception:
-                # fallback
-                try:
-                    os.remove(file_path)
-                except Exception:
-                    pass
-                os.rename(tmp_path, file_path)
-
-            try:
-                os.chmod(file_path, 0o644)
-            except Exception:
-                pass
-
-            logger.info(f"Фон успешно удален для: {file_path}")
-        except Exception as e:
-            logger.exception(f"Ошибка при сохранении результата rembg: {e}")
-            try:
-                if os.path.exists(tmp_path):
-                    os.remove(tmp_path)
-            except Exception:
-                pass
-    except Exception as e:
-        logger.error(f"Ошибка при удалении фона: {str(e)}")
+    # Функция отключена — ранее использовалась rembg для удаления фона.
+    logger.info(f"process_image_background called for {file_path} but is disabled in this build")
+    return
