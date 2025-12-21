@@ -64,6 +64,7 @@ origins = [
     "http://localhost",       # ДЛЯ ANDROID
     "capacitor://localhost",   # ДЛЯ IOS
     "https://wardrobe-app-cotlishoc.amvera.io",
+    "*"
 ]
 app.add_middleware(
     CORSMiddleware,
