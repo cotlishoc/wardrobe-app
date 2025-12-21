@@ -230,9 +230,19 @@ async def create_item(
     file_content = await file.read()
     try:
         input_image = Image.open(io.BytesIO(file_content))
+        # Конвертируем в RGBA и уменьшаем, если слишком большое
+        input_image = input_image.convert('RGBA')
+        MAX_DIM = 1024
+        try:
+            # Pillow: thumbnail сохраняет пропорции
+            if max(input_image.size) > MAX_DIM:
+                input_image.thumbnail((MAX_DIM, MAX_DIM), Image.LANCZOS)
+        except Exception:
+            pass
         unique_filename = f"{uuid.uuid4()}.png"
         file_path = os.path.join(UPLOAD_DIR, unique_filename)
-        input_image.convert('RGBA').save(file_path, format='PNG')
+        # Сохраняем оптимизированный PNG
+        input_image.save(file_path, format='PNG', optimize=True)
     except Exception:
         # fallback: просто запишем байты как файл
         unique_filename = f"{uuid.uuid4()}.png"
@@ -300,9 +310,17 @@ async def update_item(
         file_content = await file.read()
         try:
             input_image = Image.open(io.BytesIO(file_content))
+            # Конвертируем и уменьшаем изображение при необходимости
+            input_image = input_image.convert('RGBA')
+            MAX_DIM = 1024
+            try:
+                if max(input_image.size) > MAX_DIM:
+                    input_image.thumbnail((MAX_DIM, MAX_DIM), Image.LANCZOS)
+            except Exception:
+                pass
             unique_filename = f"{uuid.uuid4()}.png"
             file_path = os.path.join(UPLOAD_DIR, unique_filename)
-            input_image.convert('RGBA').save(file_path, format='PNG')
+            input_image.save(file_path, format='PNG', optimize=True)
         except Exception:
             unique_filename = f"{uuid.uuid4()}.png"
             file_path = os.path.join(UPLOAD_DIR, unique_filename)

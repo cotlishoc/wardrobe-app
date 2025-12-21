@@ -37,6 +37,30 @@ function Capsules() {
 
   const canvasRef = useRef(null);
 
+  // Попытки загрузки изображения: сначала по API_URL, при ошибке пробуем относительный путь, затем прозрачный placeholder
+  const handleImageError = (e, item) => {
+    try {
+      const img = e.target;
+      const attempts = parseInt(img.dataset.err || '0', 10);
+      img.dataset.err = String(attempts + 1);
+
+      if (attempts === 0) {
+        // первая неудача: попробуем относительный путь (без API_URL)
+        if (item && item.image_path) {
+          img.src = item.image_path.startsWith('/') ? item.image_path.replace(/^\//, '') : item.image_path;
+        } else {
+          img.src = `${API_URL}/${item.image_path}`;
+        }
+      } else {
+        // вторая неудача: ставим маленький прозрачный placeholder
+        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+      }
+    } catch (err) {
+      // ничего критичного
+      e.target.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+    }
+  };
+
   // 1. Загрузка вещей
   useEffect(() => {
     api.get('/items/')
@@ -422,6 +446,8 @@ function Capsules() {
                     alt="item" 
                     draggable="false" 
                     crossOrigin="anonymous" 
+                    data-err="0"
+                    onError={(e) => handleImageError(e, item)}
                     style={{ 
                         width: '100%', 
                         height: '100%', 
@@ -473,7 +499,7 @@ function Capsules() {
         <div className="capsule-grid">
           {filteredWardrobe.map(item => (
             <div key={item.id} className="mini-card" onClick={() => addToCanvas(item)}>
-              <img  src={`${API_URL}/${item.image_path}`}  alt={item.name} crossOrigin="anonymous"/>
+              <img  src={`${API_URL}/${item.image_path}`}  alt={item.name} crossOrigin="anonymous" data-err="0" onError={(e) => handleImageError(e, item)} />
             </div>
           ))}
           {filteredWardrobe.length === 0 && (
