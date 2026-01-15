@@ -7,12 +7,34 @@ function AllCapsules() {
   const navigate = useNavigate();
   const [capsules, setCapsules] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [imagesLastUpdate, setImagesLastUpdate] = useState(null);
+  const POLL_INTERVAL = 2500;
 
   useEffect(() => {
-    api.get('/capsules/')
-      .then(res => setCapsules(res.data))
-      .catch(err => console.error(err))
-      .finally(() => setIsLoading(false));
+    const fetchCaps = () => {
+      api.get('/capsules/')
+        .then(res => setCapsules(res.data))
+        .catch(err => console.error(err))
+        .finally(() => setIsLoading(false));
+    };
+    fetchCaps();
+
+    let mounted = true;
+    let lastSeen = null;
+    const poll = setInterval(async () => {
+      try {
+        const r = await api.get('/images/last_update');
+        if (!mounted) return;
+        const last = r.data && r.data.last_update ? r.data.last_update : null;
+        if (last !== lastSeen) {
+          lastSeen = last;
+          setImagesLastUpdate(last);
+          fetchCaps();
+        }
+      } catch(e) { /* ignore */ }
+    }, POLL_INTERVAL);
+
+    return () => { mounted = false; clearInterval(poll); };
   }, []);
 
   // --- helper: build possible src candidates for an image path ---
@@ -75,19 +97,15 @@ function AllCapsules() {
                   onClick={() => navigate(`/capsules/${capsule.id}`)}
                   style={{ cursor: 'pointer', position: 'relative' }}
               >
-                {src ? (
-                  <img 
-                    src={src} 
-                    alt={capsule.name} 
-                    data-err="0"
-                    data-cands={JSON.stringify(cands)}
-                    onError={handleImageError}
-                  />
+                {capsule.image_path ? (
+                  /* Показываем сохраненный скриншот */
+                  <img src={`${API_URL}/${capsule.image_path}${imagesLastUpdate ? `?v=${encodeURIComponent(imagesLastUpdate)}` : ''}`} alt={capsule.name} data-cands={JSON.stringify([`${API_URL}/${capsule.image_path}`, `/${capsule.image_path}`, capsule.image_path])} />
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', backgroundColor: '#f0f0f0', color: '#999', flexDirection: 'column' }}>
-                     <span>Нет фото</span>
-                  </div>
-                )}
+                 /* Фоллбэк, если скриншота нет (старая капсула) */
+                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', backgroundColor: '#f0f0f0', color: '#999', flexDirection: 'column' }}>
+                    <span>Нет фото</span>
+                 </div>
+               )}
                 {/* Название капсулы на плашке */}
                 <div style={{
                     position: 'absolute', bottom: 0, left: 0, right: 0, 
