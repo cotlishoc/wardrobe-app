@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, status, BackgroundTasks, Request, Response
+from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,206 +11,119 @@ import shutil
 import os
 import uuid
 import json
+import logging
 from rembg import remove
 from PIL import Image
 import io
-import logging
+
+# ИМПОРТ ТВОЕГО НОВОГО КЛАССИФИКАТОРА
+from .classifier import ai_classifier
+from . import models, schemas, crud, database
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Путь модели rembg
-MODEL_PATH = os.path.expanduser("~/.u2net/u2net.onnx")
+# --- СЛОВАРЬ ДЛЯ ПЕРЕВОДА КАТЕГОРИЙ (МАППИНГ) ---
+# ИИ вернет "MEN-Denim", а в приложении сохранится "Джинсы (муж)"
+CATEGORY_MAP = {
+    "MEN-Denim": "Джинсы (муж)",
+    "MEN-Jackets_Vests": "Верхняя одежда (муж)",
+    "MEN-Pants": "Брюки (муж)",
+    "MEN-Shirts_Polos": "Рубашки и Поло",
+    "MEN-Shorts": "Шорты (муж)",
+    "MEN-Suiting": "Костюмы",
+    "MEN-Sweaters": "Свитера",
+    "MEN-Sweatshirts_Hoodies": "Толстовки и Худи",
+    "MEN-Tees_Tanks": "Футболки и Майки",
+    "WOMEN-Blouses_Shirts": "Блузки и Рубашки",
+    "WOMEN-Cardigans": "Кардиганы",
+    "WOMEN-Denim": "Джинсы (жен)",
+    "WOMEN-Dresses": "Платья",
+    "WOMEN-Graphic_Tees": "Футболки с принтом",
+    "WOMEN-Jackets_Coats": "Верхняя одежда (жен)",
+    "WOMEN-Leggings": "Легинсы",
+    "WOMEN-Pants": "Брюки (жен)",
+    "WOMEN-Rompers_Jumpsuits": "Комбинезоны",
+    "WOMEN-Shorts": "Шорты (жен)",
+    "WOMEN-Skirts": "Юбки",
+    "WOMEN-Sweaters": "Свитера (жен)",
+    "WOMEN-Sweatshirts_Hoodies": "Толстовки (жен)",
+    "WOMEN-Tees_Tanks": "Футболки (жен)"
+}
 
-
-# Регистрируем предзагрузку модели rembg при старте приложения
-def _predownload_rembg_model():
-    try:
-        if not os.path.exists(MODEL_PATH):
-            logger.info("Pre-downloading rembg u2net model to speed up first request...")
-            dummy = Image.new('RGBA', (8, 8), (255, 255, 255, 0))
-            try:
-                # remove вызовет подгрузку модели в первый раз
-                remove(dummy)
-                logger.info("Rembg model downloaded and ready")
-            except Exception as e:
-                logger.exception(f"rembg predownload failed: {e}")
-    except Exception as e:
-        logger.exception(f"Error in predownload_rembg_model: {e}")
-
-from . import models, schemas, crud, database
-
-# Создаем таблицы
+# Создаем таблицы в БД
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
 
-# Регистрируем предзагрузку rembg корректно
-app.add_event_handler("startup", _predownload_rembg_model)
-
-# --- НАСТРОЙКИ JWT (Секретный ключ) ---
+# --- НАСТРОЙКИ JWT ---
 SECRET_KEY = "my_super_secret_key_change_me_in_production"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30000 # Долгоживущий токен для удобства
-
-# Эта штука говорит FastAPI, где искать токен (в заголовке Authorization)
+ACCESS_TOKEN_EXPIRE_MINUTES = 30000
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 # --- CORS ---
-origins = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "https://wardrobe-app-cotlishoc.amvera.io",
-    "http://localhost",       # ДЛЯ ANDROID
-    "capacitor://localhost",   # ДЛЯ IOS
-    "https://wardrobe-app-cotlishoc.amvera.io",
-    "*"
-]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],       
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Глобальный middleware: добавляет CORS заголовки ко всем ответам (эко Origin при наличии).
-@app.middleware("http")
-async def add_cors_headers(request, call_next):
-    origin = request.headers.get("origin")
-    # Выполняем запрос к обработчику
-    response = await call_next(request)
-    try:
-        # Если пришёл Origin и он разрешён — эхо Origin (требуется для credentials)
-        if origin and (origin in origins or "*" in origins):
-            response.headers["Access-Control-Allow-Origin"] = origin
-        else:
-            # fallback — разрешаем все если нет явного Origin
-            response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Authorization,Content-Type,Accept"
-        # Небольшой эвент-хедер для дебага (можно удалить позже)
-        response.headers["X-App-CORS"] = "enabled"
-    except Exception:
-        pass
-    return response
-
-# Дополнительный middleware: явно добавляем Access-Control-Allow-Origin для статики.
-# Некоторые среды (CDN/фронт) могут возвращать статические файлы без нужных CORS заголовков,
-# поэтому здесь безопасно эхо origin, если он разрешён.
-@app.middleware("http")
-async def add_cors_for_static(request, call_next):
-    path = request.url.path
-    origin = request.headers.get("origin")
-    response = await call_next(request)
-    try:
-        if path.startswith("/static"):
-            if origin and (origin in origins or "*" in origins):
-                response.headers["Access-Control-Allow-Origin"] = origin
-            else:
-                response.headers["Access-Control-Allow-Origin"] = "*"
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
-            response.headers["Access-Control-Allow-Headers"] = "Authorization,Content-Type,Accept"
-    except Exception:
-        pass
-    return response
-
-# Статика
-UPLOAD_DIR = "static/uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-# Статические файлы будут монтироваться ниже после определения BASE_UPLOAD_DIR
-# чтобы избежать конфликтов при работе в разных окружениях (локально / в Amvera)
-
-# --- НАСТРОЙКА ПАПОК ДЛЯ КАРТИНОК ---
-
-# Проверяем, есть ли папка /data (она есть только в Amvera)
+# --- НАСТРОЙКА ПАПОК ---
 if os.path.exists("/data"):
-    # МЫ В ОБЛАКЕ
     BASE_UPLOAD_DIR = "/data"
 else:
-    # МЫ ДОМА (Windows/Mac)
     BASE_UPLOAD_DIR = "static"
 
-# Полный путь: /data/uploads или static/uploads
 UPLOAD_DIR = os.path.join(BASE_UPLOAD_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-# --- ВАЖНО: Подключаем статику ---
-# Мы говорим FastAPI: "Когда просят /static, смотри в папку BASE_UPLOAD_DIR"
-# То есть ссылка http://.../static/uploads/foto.png будет смотреть в /data/uploads/foto.png
 app.mount("/static", StaticFiles(directory=BASE_UPLOAD_DIR), name="static")
 
-# --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ AUTH ---
-
+# --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-# ГЛАВНАЯ ФУНКЦИЯ: Определяет, кто делает запрос
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
+        if email is None: raise HTTPException(status_code=401)
+        user = crud.get_user_by_email(db, email=email)
+        if user is None: raise HTTPException(status_code=401)
+        return user
     except JWTError:
-        raise credentials_exception
-    
-    user = crud.get_user_by_email(db, email=email)
-    if user is None:
-        raise credentials_exception
-    return user
+        raise HTTPException(status_code=401)
 
-# --- ЭНДПОИНТЫ ---
-
+# --- ЭНДПОИНТЫ ПОЛЬЗОВАТЕЛЕЙ ---
 class LoginRequest(BaseModel):
     email: str
     password: str
 
-# 1. РЕГИСТРАЦИЯ
 @app.post("/users/", response_model=schemas.UserResponse)
 def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     db_user = crud.get_user_by_email(db, email=user.email)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+    if db_user: raise HTTPException(status_code=400, detail="Email already registered")
     return crud.create_user(db=db, user=user)
 
-# 2. ВХОД (Возвращает ТОКЕН)
 @app.post("/login")
 def login(login_data: LoginRequest, db: Session = Depends(database.get_db)):
     user = crud.get_user_by_email(db, email=login_data.email)
     if not user or not crud.verify_password(login_data.password, user.password_hash):
         raise HTTPException(status_code=400, detail="Неверная почта или пароль")
-    
-    # Создаем токен
-    access_token = create_access_token(data={"sub": user.email})
-    
-    # Возвращаем токен и ID (для удобства фронта)
-    return {
-        "access_token": access_token, 
-        "token_type": "bearer", 
-        "user_id": user.id,
-        "name": user.name,   # <--- Добавили
-        "email": user.email  # <--- Добавили
-    }
+    return {"access_token": create_access_token(data={"sub": user.email}), "token_type": "bearer", "user_id": user.id, "name": user.name, "email": user.email}
 
-# --- ВЕЩИ (ТЕПЕРЬ С ПРОВЕРКОЙ current_user) ---
+# --- ВЕЩИ (С ИНТЕГРАЦИЕЙ ИИ) ---
 
 @app.post("/items/", response_model=schemas.ItemResponse)
 async def create_item(
     background_tasks: BackgroundTasks,
     name: str = Form(...),
-    category: str = Form(None),
+    category: str = Form(None), # Сюда может прийти пустота
     color: str = Form(None),
     style: str = Form(None),
     season: str = Form(None),
@@ -218,192 +131,89 @@ async def create_item(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    # Быстро сохраняем файл в PNG (конвертация через PIL без rembg) чтобы не блокировать запрос
+    # 1. Сохраняем файл временно
     file_content = await file.read()
-    try:
-        input_image = Image.open(io.BytesIO(file_content))
-        # Конвертируем в RGBA и уменьшаем, если слишком большое
-        input_image = input_image.convert('RGBA')
-        MAX_DIM = 1024
+    unique_filename = f"{uuid.uuid4()}.png"
+    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    
+    with open(file_path, 'wb') as buffer:
+        buffer.write(file_content)
+
+    # 2. ВЫЗОВ ИИ ДЛЯ ОПРЕДЕЛЕНИЯ КАТЕГОРИИ
+    # Если категория не выбрана вручную (null, "" или None)
+    final_category = category
+    if not category or category in ["null", "", "undefined"]:
         try:
-            # Pillow: thumbnail сохраняет пропорции
-            if max(input_image.size) > MAX_DIM:
-                input_image.thumbnail((MAX_DIM, MAX_DIM), Image.LANCZOS)
-        except Exception:
-            pass
-        unique_filename = f"{uuid.uuid4()}.png"
-        file_path = os.path.join(UPLOAD_DIR, unique_filename)
-        # Сохраняем оптимизированный PNG
-        input_image.save(file_path, format='PNG', optimize=True)
-    except Exception:
-        # fallback: просто запишем байты как файл
-        unique_filename = f"{uuid.uuid4()}.png"
-        file_path = os.path.join(UPLOAD_DIR, unique_filename)
-        with open(file_path, 'wb') as buffer:
-            buffer.write(file_content)
+            logger.info("Starting AI Category Prediction...")
+            # Получаем сырое имя (например, WOMEN-Dresses)
+            raw_pred = ai_classifier.predict(file_path)
+            # Переводим на русский (например, Платья)
+            final_category = CATEGORY_MAP.get(raw_pred, raw_pred)
+            logger.info(f"AI Prediction: {final_category}")
+        except Exception as e:
+            logger.error(f"AI Prediction ERROR: {e}")
+            final_category = "Другое"
 
-    try:
-        os.chmod(file_path, 0o644)
-    except Exception:
-        pass
-    logger.info(f"Saved item image to: {file_path} (exists={os.path.exists(file_path)})")
-
+    # 3. Сохраняем в базу данных
     db_path = f"static/uploads/{unique_filename}"
-
     item_data = schemas.ItemCreate(
-        name=name, category=category, color=color, style=style, season=season
+        name=name, 
+        category=final_category, # Используем результат ИИ
+        color=color, 
+        style=style, 
+        season=season
     )
     db_item = crud.create_item(db=db, item=item_data, user_id=current_user.id, image_path=db_path)
 
-    # Планируем фоновую задачу по удалению фона
-    try:
-        background_tasks.add_task(process_image_background, file_path)
-        logger.info("process_image_background task scheduled")
-    except Exception as e:
-        logger.exception(f"Failed to schedule process_image_background: {e}")
+    # 4. В фоне запускаем удаление фона (rembg)
+    background_tasks.add_task(process_image_background, file_path)
 
     return db_item
 
 @app.get("/items/", response_model=List[schemas.ItemResponse])
 def read_items(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
-    # Запрашиваем вещи ТОЛЬКО этого юзера
     return crud.get_items(db, user_id=current_user.id)
 
 @app.get("/items/{item_id}", response_model=schemas.ItemResponse)
 def read_item(item_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     item = db.query(models.Item).filter(models.Item.id == item_id).first()
-    if item is None:
-        raise HTTPException(status_code=404, detail="Item not found")
-    # Проверка: принадлежит ли вещь этому юзеру?
-    if item.user_id != current_user.id:
-         raise HTTPException(status_code=403, detail="Not authorized")
+    if not item or item.user_id != current_user.id: raise HTTPException(status_code=403)
     return item
-
-@app.put("/items/{item_id}")
-async def update_item(
-    item_id: int,
-    background_tasks: BackgroundTasks,
-    name: str = Form(...),
-    category: str = Form(None),
-    color: str = Form(None),
-    style: str = Form(None),
-    season: str = Form(None),
-    file: UploadFile = File(None), # Если прислали новый файл
-    db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user)
-):
-    db_item = db.query(models.Item).filter(models.Item.id == item_id).first()
-    if not db_item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    if db_item.user_id != current_user.id:
-         raise HTTPException(status_code=403, detail="Not authorized")
-    
-    # Если загрузили новую картинку - удаляем фон
-    if file:
-        # Удаляем старую картинку с диска
-        if db_item.image_path and os.path.exists(db_item.image_path):
-            try: os.remove(db_item.image_path)
-            except: pass
-
-        file_content = await file.read()
-        try:
-            input_image = Image.open(io.BytesIO(file_content))
-            # Конвертируем и уменьшаем изображение при необходимости
-            input_image = input_image.convert('RGBA')
-            MAX_DIM = 1024
-            try:
-                if max(input_image.size) > MAX_DIM:
-                    input_image.thumbnail((MAX_DIM, MAX_DIM), Image.LANCZOS)
-            except Exception:
-                pass
-            unique_filename = f"{uuid.uuid4()}.png"
-            file_path = os.path.join(UPLOAD_DIR, unique_filename)
-            input_image.save(file_path, format='PNG', optimize=True)
-        except Exception:
-            unique_filename = f"{uuid.uuid4()}.png"
-            file_path = os.path.join(UPLOAD_DIR, unique_filename)
-            with open(file_path, 'wb') as buffer:
-                buffer.write(file_content)
-
-        try:
-            os.chmod(file_path, 0o644)
-        except Exception:
-            pass
-        logger.info(f"Saved updated item image to: {file_path} (exists={os.path.exists(file_path)})")
-        db_item.image_path = f"static/uploads/{unique_filename}"
-        # Запускаем фоновую обработку изображения (вне зависимости от среды)
-        try:
-            background_tasks.add_task(process_image_background, file_path)
-            logger.info("process_image_background task scheduled")
-        except Exception:
-            # если что-то пошло не так — ничего критичного
-            pass
-
-    # Обновляем остальные поля
-    db_item.name = name
-    db_item.category = category
-    db_item.color = color
-    db_item.style = style
-    db_item.season = season
-    
-    db.commit()
-    db.refresh(db_item)
-    return db_item
 
 @app.delete("/items/{item_id}")
 def delete_item(item_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_item = db.query(models.Item).filter(models.Item.id == item_id).first()
-    if not db_item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    if db_item.user_id != current_user.id:
-         raise HTTPException(status_code=403, detail="Not authorized")
-    
-    if os.path.exists(db_item.image_path):
-        try: os.remove(db_item.image_path)
-        except: pass
-
+    if not db_item or db_item.user_id != current_user.id: raise HTTPException(status_code=403)
+    if os.path.exists(db_item.image_path): os.remove(db_item.image_path)
     db.delete(db_item)
     db.commit()
     return {"ok": True}
 
-# --- КАПСУЛЫ (ТОЖЕ С ПРОВЕРКОЙ) ---
+# --- ФУНКЦИЯ УДАЛЕНИЯ ФОНА ---
+def process_image_background(file_path: str):
+    try:
+        with open(file_path, "rb") as f:
+            input_bytes = f.read()
+        output_bytes = remove(input_bytes)
+        img = Image.open(io.BytesIO(output_bytes)).convert('RGBA')
+        img.save(file_path, format='PNG', optimize=True)
+        logger.info(f"Background removed for: {file_path}")
+    except Exception as e:
+        logger.error(f"Rembg error: {e}")
 
+# --- КАПСУЛЫ ---
 @app.post("/capsules/", response_model=schemas.CapsuleResponse)
-def create_capsule(
-    name: str = Form(...),
-    layout: str = Form(...),
-    item_ids: str = Form(...),
-    file: UploadFile = File(None),
-    db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user) # <-- Auth
-):
+def create_capsule(name: str = Form(...), layout: str = Form(...), item_ids: str = Form(...), file: UploadFile = File(None), db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     db_path = None
     if file:
-        file_extension = file.filename.split(".")[-1]
-        unique_filename = f"capsule_{uuid.uuid4()}.{file_extension}"
+        unique_filename = f"capsule_{uuid.uuid4()}.png"
         file_path = os.path.join(UPLOAD_DIR, unique_filename)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        try:
-            os.chmod(file_path, 0o644)
-        except Exception:
-            pass
-        logger.info(f"Saved capsule image to: {file_path} (exists={os.path.exists(file_path)})")
+        with open(file_path, "wb") as buffer: shutil.copyfileobj(file.file, buffer)
         db_path = f"static/uploads/{unique_filename}"
-
-    db_capsule = models.Capsule(
-        name=name,
-        layout=layout,
-        image_path=db_path,
-        user_id=current_user.id # Используем ID из токена
-    )
-    
+    db_capsule = models.Capsule(name=name, layout=layout, image_path=db_path, user_id=current_user.id)
     ids_list = json.loads(item_ids)
     if ids_list:
-        # Важно: берем вещи только если они принадлежат этому юзеру
-        items = db.query(models.Item).filter(models.Item.id.in_(ids_list), models.Item.user_id == current_user.id).all()
-        db_capsule.items = items
-
+        db_capsule.items = db.query(models.Item).filter(models.Item.id.in_(ids_list), models.Item.user_id == current_user.id).all()
     db.add(db_capsule)
     db.commit()
     db.refresh(db_capsule)
@@ -413,156 +223,6 @@ def create_capsule(
 def read_capsules(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     return crud.get_capsules(db, user_id=current_user.id)
 
-@app.put("/capsules/{capsule_id}", response_model=schemas.CapsuleResponse)
-def update_capsule(
-    capsule_id: int,
-    name: str = Form(...),
-    layout: str = Form(...),
-    item_ids: str = Form(...),
-    file: UploadFile = File(None),
-    db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user)
-):
-    db_capsule = db.query(models.Capsule).filter(models.Capsule.id == capsule_id).first()
-    if not db_capsule:
-        raise HTTPException(status_code=404, detail="Capsule not found")
-    if db_capsule.user_id != current_user.id:
-         raise HTTPException(status_code=403, detail="Not authorized")
-
-    if file:
-        if db_capsule.image_path and os.path.exists(db_capsule.image_path):
-            try: os.remove(db_capsule.image_path)
-            except: pass
-
-        file_extension = file.filename.split(".")[-1]
-        unique_filename = f"capsule_{uuid.uuid4()}.{file_extension}"
-        file_path = os.path.join(UPLOAD_DIR, unique_filename)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        try:
-            os.chmod(file_path, 0o644)
-        except Exception:
-            pass
-        logger.info(f"Saved updated capsule image to: {file_path} (exists={os.path.exists(file_path)})")
-        db_capsule.image_path = f"static/uploads/{unique_filename}"
-
-    db_capsule.name = name
-    db_capsule.layout = layout
-    
-    ids_list = json.loads(item_ids)
-    if ids_list is not None:
-        items = db.query(models.Item).filter(models.Item.id.in_(ids_list), models.Item.user_id == current_user.id).all()
-        db_capsule.items = items
-
-    db.commit()
-    db.refresh(db_capsule)
-    return db_capsule
-
-@app.delete("/capsules/{capsule_id}")
-def delete_capsule(capsule_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
-    db_capsule = db.query(models.Capsule).filter(models.Capsule.id == capsule_id).first()
-    if not db_capsule:
-        raise HTTPException(status_code=404, detail="Not found")
-    if db_capsule.user_id != current_user.id:
-         raise HTTPException(status_code=403, detail="Not authorized")
-    
-    if db_capsule.image_path and os.path.exists(db_capsule.image_path):
-        try: os.remove(db_capsule.image_path)
-        except: pass
-
-    db.delete(db_capsule)
-    db.commit()
-    return {"ok": True}
-
-def process_image_background(file_path: str):
-    try:
-        logger.info(f"Начинаю удаление фона для файла: {file_path}")
-        # Проверяем, существует ли файл
-        if not os.path.exists(file_path):
-            logger.error(f"Файл {file_path} не найден!")
-            return
-
-        # Читаем исходные байты
-        with open(file_path, "rb") as f:
-            input_bytes = f.read()
-
-        if not input_bytes:
-            logger.error(f"Файл {file_path} пуст, пропускаю обработку")
-            return
-
-        # Вызываем rembg
-        try:
-            output = remove(input_bytes)
-        except Exception as e:
-            logger.exception(f"rembg.remove failed: {e}")
-            return
-
-        tmp_path = f"{file_path}.rembg.tmp"
-
-        try:
-            # Если rembg вернул байты — создаём Image из байтов
-            if isinstance(output, (bytes, bytearray)):
-                img = Image.open(io.BytesIO(output))
-            elif hasattr(output, 'save'):
-                # Если rembg вернул PIL.Image
-                img = output
-            else:
-                logger.error(f"rembg вернул неподдерживаемый тип: {type(output)}")
-                return
-
-            # Приводим к RGBA и сохраняем как PNG во временный файл
-            img = img.convert('RGBA')
-            img.save(tmp_path, format='PNG', optimize=True)
-
-            # Атомарно заменяем оригинал
-            try:
-                os.replace(tmp_path, file_path)
-            except Exception:
-                # fallback
-                try:
-                    os.remove(file_path)
-                except Exception:
-                    pass
-                os.rename(tmp_path, file_path)
-
-            try:
-                os.chmod(file_path, 0o644)
-            except Exception:
-                pass
-
-            logger.info(f"Фон успешно удален для: {file_path}")
-
-            # Обновляем метку времени обработанных изображений, чтобы фронтенд мог обнаружить изменения
-            try:
-                ts = datetime.utcnow().isoformat()
-                marker = os.path.join(UPLOAD_DIR, '.images_updated')
-                with open(marker, 'w') as mf:
-                    mf.write(ts)
-                try:
-                    os.utime(marker, None)
-                except Exception:
-                    pass
-            except Exception as e:
-                logger.exception(f"Не удалось записать маркер обновления изображений: {e}")
-        except Exception as e:
-            logger.exception(f"Ошибка при сохранении результата rembg: {e}")
-            try:
-                if os.path.exists(tmp_path):
-                    os.remove(tmp_path)
-            except Exception:
-                pass
-    except Exception as e:
-        logger.error(f"Ошибка при удалении фона: {str(e)}")
-
-# Endpoint для проверки последнего обновления изображений
 @app.get("/images/last_update")
 def images_last_update():
-    marker = os.path.join(UPLOAD_DIR, '.images_updated')
-    if os.path.exists(marker):
-        try:
-            with open(marker, 'r') as f:
-                ts = f.read().strip()
-            return {"last_update": ts}
-        except Exception:
-            return {"last_update": None}
-    return {"last_update": None}
+    return {"last_update": datetime.utcnow().isoformat()}

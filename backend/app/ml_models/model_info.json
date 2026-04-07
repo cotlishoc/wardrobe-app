@@ -1,0 +1,44 @@
+{
+  "model_name": "EfficientNetB0_TransferLearning",
+  "test_accuracy": 0.644908607006073,
+  "test_loss": 1.1789859533309937,
+  "num_classes": 23,
+  "classes": [
+    "MEN-Denim",
+    "MEN-Jackets_Vests",
+    "MEN-Pants",
+    "MEN-Shirts_Polos",
+    "MEN-Shorts",
+    "MEN-Suiting",
+    "MEN-Sweaters",
+    "MEN-Sweatshirts_Hoodies",
+    "MEN-Tees_Tanks",
+    "WOMEN-Blouses_Shirts",
+    "WOMEN-Cardigans",
+    "WOMEN-Denim",
+    "WOMEN-Dresses",
+    "WOMEN-Graphic_Tees",
+    "WOMEN-Jackets_Coats",
+    "WOMEN-Leggings",
+    "WOMEN-Pants",
+    "WOMEN-Rompers_Jumpsuits",
+    "WOMEN-Shorts",
+    "WOMEN-Skirts",
+    "WOMEN-Sweaters",
+    "WOMEN-Sweatshirts_Hoodies",
+    "WOMEN-Tees_Tanks"
+  ],
+  "image_size": 224,
+  "input_shape": [
+    224,
+    224,
+    3
+  ],
+  "preprocessing": "rescale_255",
+  "training_info": {
+    "stage1_epochs": 15,
+    "stage2_epochs": 10,
+    "best_val_acc_stage1": 0.631205677986145,
+    "best_val_acc_stage2": 0.6860090494155884
+  }
+}
