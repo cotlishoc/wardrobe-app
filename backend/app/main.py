@@ -16,53 +16,40 @@ from rembg import remove
 from PIL import Image
 import io
 
-# ИМПОРТ ТВОЕГО НОВОГО КЛАССИФИКАТОРА
-from .classifier import ai_classifier
+# Импорт классификатора
+from .classifier import ai_classifier, get_dominant_color
 from . import models, schemas, crud, database
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# --- СЛОВАРЬ ДЛЯ ПЕРЕВОДА КАТЕГОРИЙ (МАППИНГ) ---
-# ИИ вернет "MEN-Denim", а в приложении сохранится "Джинсы (муж)"
-CATEGORY_MAP = {
-    "MEN-Denim": "Джинсы (муж)",
-    "MEN-Jackets_Vests": "Верхняя одежда (муж)",
-    "MEN-Pants": "Брюки (муж)",
-    "MEN-Shirts_Polos": "Рубашки и Поло",
-    "MEN-Shorts": "Шорты (муж)",
-    "MEN-Suiting": "Костюмы",
-    "MEN-Sweaters": "Свитера",
-    "MEN-Sweatshirts_Hoodies": "Толстовки и Худи",
-    "MEN-Tees_Tanks": "Футболки и Майки",
-    "WOMEN-Blouses_Shirts": "Блузки и Рубашки",
-    "WOMEN-Cardigans": "Кардиганы",
-    "WOMEN-Denim": "Джинсы (жен)",
-    "WOMEN-Dresses": "Платья",
-    "WOMEN-Graphic_Tees": "Футболки с принтом",
-    "WOMEN-Jackets_Coats": "Верхняя одежда (жен)",
-    "WOMEN-Leggings": "Легинсы",
-    "WOMEN-Pants": "Брюки (жен)",
-    "WOMEN-Rompers_Jumpsuits": "Комбинезоны",
-    "WOMEN-Shorts": "Шорты (жен)",
-    "WOMEN-Skirts": "Юбки",
-    "WOMEN-Sweaters": "Свитера (жен)",
-    "WOMEN-Sweatshirts_Hoodies": "Толстовки (жен)",
-    "WOMEN-Tees_Tanks": "Футболки (жен)"
-}
 
 # Создаем таблицы в БД
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
 
-# --- НАСТРОЙКИ JWT ---
+# --- НАСТРОЙКИ ---
 SECRET_KEY = "my_super_secret_key_change_me_in_production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30000
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
-# --- CORS ---
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+
+# 1. Создаем жесткий обработчик заголовков
+class CorsHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        return response
+
+app.add_middleware(CorsHeadersMiddleware)
+
+# 2. Стандартный CORS (оставляем тоже)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -71,15 +58,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- НАСТРОЙКА ПАПОК ---
-if os.path.exists("/data"):
-    BASE_UPLOAD_DIR = "/data"
-else:
-    BASE_UPLOAD_DIR = "static"
 
-UPLOAD_DIR = os.path.join(BASE_UPLOAD_DIR, "uploads")
+# --- НАСТРОЙКА ПАПОК ---
+# Локально BASE_UPLOAD_DIR будет "static"
+BASE_DIR = "static"
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+TEMP_DIR = os.path.join(BASE_DIR, "temp")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-app.mount("/static", StaticFiles(directory=BASE_UPLOAD_DIR), name="static")
+os.makedirs(TEMP_DIR, exist_ok=True)
+app.mount("/static", StaticFiles(directory=BASE_DIR), name="static")
 
 # --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 def create_access_token(data: dict):
@@ -117,13 +104,13 @@ def login(login_data: LoginRequest, db: Session = Depends(database.get_db)):
         raise HTTPException(status_code=400, detail="Неверная почта или пароль")
     return {"access_token": create_access_token(data={"sub": user.email}), "token_type": "bearer", "user_id": user.id, "name": user.name, "email": user.email}
 
-# --- ВЕЩИ (С ИНТЕГРАЦИЕЙ ИИ) ---
+# --- ВЕЩИ (ITEMS) ---
 
 @app.post("/items/", response_model=schemas.ItemResponse)
 async def create_item(
     background_tasks: BackgroundTasks,
     name: str = Form(...),
-    category: str = Form(None), # Сюда может прийти пустота
+    category: str = Form(None),
     color: str = Form(None),
     style: str = Form(None),
     season: str = Form(None),
@@ -131,43 +118,35 @@ async def create_item(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    # 1. Сохраняем файл временно
+    # 1. Читаем файл и СРАЗУ удаляем фон
     file_content = await file.read()
+    try:
+        # Удаляем фон через rembg
+        no_bg_bytes = remove(file_content)
+        img = Image.open(io.BytesIO(no_bg_bytes)).convert('RGBA')
+    except Exception as e:
+        logger.error(f"Rembg error: {e}")
+        # Если не вышло - берем оригинал
+        img = Image.open(io.BytesIO(file_content)).convert('RGBA')
+
+    # 2. Сохраняем чистую картинку
     unique_filename = f"{uuid.uuid4()}.png"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
-    
-    with open(file_path, 'wb') as buffer:
-        buffer.write(file_content)
+    img.save(file_path, format='PNG', optimize=True)
 
-    # 2. ВЫЗОВ ИИ ДЛЯ ОПРЕДЕЛЕНИЯ КАТЕГОРИИ
-    # Если категория не выбрана вручную (null, "" или None)
-    final_category = category
+    # 3. Теперь ИИ видит только одежду на прозрачном фоне!
     if not category or category in ["null", "", "undefined"]:
-        try:
-            logger.info("Starting AI Category Prediction...")
-            # Получаем сырое имя (например, WOMEN-Dresses)
-            raw_pred = ai_classifier.predict(file_path)
-            # Переводим на русский (например, Платья)
-            final_category = CATEGORY_MAP.get(raw_pred, raw_pred)
-            logger.info(f"AI Prediction: {final_category}")
-        except Exception as e:
-            logger.error(f"AI Prediction ERROR: {e}")
-            final_category = "Другое"
+        category = ai_classifier.predict(file_path)
 
-    # 3. Сохраняем в базу данных
+    if not color or color in ["null", "", "undefined"]:
+        # Вызываем обновленную функцию цвета (код ниже)
+        color = get_dominant_color(file_path)
+        logger.info(f"AI Detected Color (No BG): {color}")
+
     db_path = f"static/uploads/{unique_filename}"
-    item_data = schemas.ItemCreate(
-        name=name, 
-        category=final_category, # Используем результат ИИ
-        color=color, 
-        style=style, 
-        season=season
-    )
+    item_data = schemas.ItemCreate(name=name, category=category, color=color, style=style, season=season)
     db_item = crud.create_item(db=db, item=item_data, user_id=current_user.id, image_path=db_path)
-
-    # 4. В фоне запускаем удаление фона (rembg)
-    background_tasks.add_task(process_image_background, file_path)
-
+    
     return db_item
 
 @app.get("/items/", response_model=List[schemas.ItemResponse])
@@ -180,16 +159,72 @@ def read_item(item_id: int, db: Session = Depends(database.get_db), current_user
     if not item or item.user_id != current_user.id: raise HTTPException(status_code=403)
     return item
 
+# --- ИСПРАВЛЕННЫЙ ПУТЬ РЕДАКТИРОВАНИЯ ---
+@app.put("/items/{item_id}")
+async def update_item(
+    item_id: int,
+    name: str = Form(...),
+    category: str = Form(None),
+    color: str = Form(None),
+    style: str = Form(None),
+    season: str = Form(None),
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    db_item = db.query(models.Item).filter(models.Item.id == item_id).first()
+    if not db_item or db_item.user_id != current_user.id:
+        raise HTTPException(status_code=403)
+
+    full_path = os.path.join(os.getcwd(), db_item.image_path)
+
+    # Переопределение категории, если стерли
+    if not category or category in ["null", "", "undefined"]:
+        category = ai_classifier.predict(full_path)
+
+    # Переопределение цвета, если стерли
+    if not color or color in ["null", "", "undefined"]:
+        color = get_dominant_color(full_path)
+
+    db_item.name = name
+    db_item.category = category
+    db_item.color = color
+    db_item.style = style
+    db_item.season = season
+    
+    db.commit()
+    return db_item
+
+# --- ИСПРАВЛЕННОЕ УДАЛЕНИЕ ---
 @app.delete("/items/{item_id}")
 def delete_item(item_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+    # 1. Находим вещь в базе
     db_item = db.query(models.Item).filter(models.Item.id == item_id).first()
-    if not db_item or db_item.user_id != current_user.id: raise HTTPException(status_code=403)
-    if os.path.exists(db_item.image_path): os.remove(db_item.image_path)
+    
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    if db_item.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # 2. Удаляем файл с диска
+    try:
+        # Составляем полный путь (например C:/.../static/uploads/image.png)
+        full_path = os.path.join(os.getcwd(), db_item.image_path)
+        if os.path.exists(full_path):
+            os.remove(full_path)
+            logger.info(f"File deleted: {full_path}")
+        else:
+            logger.warning(f"File not found on disk, skipping: {full_path}")
+    except Exception as e:
+        logger.error(f"Error deleting file: {e}")
+
+    # 3. Удаляем запись из базы данных
     db.delete(db_item)
     db.commit()
+    
     return {"ok": True}
 
-# --- ФУНКЦИЯ УДАЛЕНИЯ ФОНА ---
+# --- УДАЛЕНИЕ ФОНА (BACKGROUND) ---
 def process_image_background(file_path: str):
     try:
         with open(file_path, "rb") as f:
@@ -197,7 +232,6 @@ def process_image_background(file_path: str):
         output_bytes = remove(input_bytes)
         img = Image.open(io.BytesIO(output_bytes)).convert('RGBA')
         img.save(file_path, format='PNG', optimize=True)
-        logger.info(f"Background removed for: {file_path}")
     except Exception as e:
         logger.error(f"Rembg error: {e}")
 
@@ -226,3 +260,91 @@ def read_capsules(db: Session = Depends(database.get_db), current_user: models.U
 @app.get("/images/last_update")
 def images_last_update():
     return {"last_update": datetime.utcnow().isoformat()}
+
+
+@app.post("/items/analyze")
+async def analyze_item(file: UploadFile = File(...)):
+    """Эндпоинт для мгновенного анализа фото перед сохранением"""
+    try:
+        file_content = await file.read()
+        
+        # 1. СРАЗУ удаляем фон (чтобы пользователь видел результат)
+        no_bg_bytes = remove(file_content)
+        img = Image.open(io.BytesIO(no_bg_bytes)).convert('RGBA')
+        
+        # 2. Сохраняем во временную папку (static/temp)
+        temp_dir = os.path.join(BASE_UPLOAD_DIR, "temp")
+        os.makedirs(temp_dir, exist_ok=True)
+        unique_filename = f"temp_{uuid.uuid4()}.png"
+        file_path = os.path.join(temp_dir, unique_filename)
+        img.save(file_path, format='PNG')
+
+        # 3. Запускаем ИИ (категория и цвет)
+        predicted_category = ai_classifier.predict(file_path)
+        predicted_color = get_dominant_color(file_path)
+
+        # Возвращаем данные и путь к временному файлу
+        return {
+            "category": predicted_category,
+            "color": predicted_color,
+            "image_path": f"static/temp/{unique_filename}"
+        }
+    except Exception as e:
+        logger.error(f"Analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при анализе фото")
+
+@app.post("/items/{item_id}/reanalyze")
+async def reanalyze_existing_item(
+    item_id: int, 
+    db: Session = Depends(database.get_db), 
+    current_user: models.User = Depends(get_current_user)
+):
+    db_item = db.query(models.Item).filter(models.Item.id == item_id).first()
+    if not db_item or db_item.user_id != current_user.id:
+        raise HTTPException(status_code=403)
+
+    # Путь к файлу на диске
+    full_path = os.path.join(os.getcwd(), db_item.image_path)
+    
+    if not os.path.exists(full_path):
+        raise HTTPException(status_code=404, detail="Файл не найден")
+
+    # Запускаем ИИ
+    category = ai_classifier.predict(full_path)
+    color = get_dominant_color(full_path)
+
+    return {"category": category, "color": color}
+
+
+# --- УДАЛЕНИЕ КАПСУЛЫ ---
+@app.delete("/capsules/{capsule_id}")
+def delete_capsule(
+    capsule_id: int, 
+    db: Session = Depends(database.get_db), 
+    current_user: models.User = Depends(get_current_user)
+):
+    # 1. Ищем капсулу
+    db_capsule = db.query(models.Capsule).filter(models.Capsule.id == capsule_id).first()
+    
+    if not db_capsule:
+        raise HTTPException(status_code=404, detail="Капсула не найдена")
+    
+    # 2. Проверяем права (только владелец может удалить)
+    if db_capsule.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Нет прав для удаления")
+    
+    # 3. Удаляем файл скриншота с диска
+    if db_capsule.image_path:
+        try:
+            full_path = os.path.join(os.getcwd(), db_capsule.image_path)
+            if os.path.exists(full_path):
+                os.remove(full_path)
+                logger.info(f"Скриншот капсулы удален: {full_path}")
+        except Exception as e:
+            logger.error(f"Ошибка при удалении файла капсулы: {e}")
+
+    # 4. Удаляем запись из базы
+    db.delete(db_capsule)
+    db.commit()
+    
+    return {"ok": True}

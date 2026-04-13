@@ -19,9 +19,19 @@ function SmartSelect({ type, value, onChange, placeholder }) {
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
     if (saved) {
-      setOptions(JSON.parse(saved));
+      const parsedSaved = JSON.parse(saved);
+      
+      // Если это список цветов, мы объединяем сохраненные пользователем 
+      // и наши новые системные цвета, чтобы ничего не пропало
+      if (type === 'color') {
+        const systemColors = initialOptions.color.map(s => ({ label: s, value: s }));
+        // Убираем дубликаты
+        const combined = [...systemColors, ...parsedSaved.filter(ps => !initialOptions.color.includes(ps.value))];
+        setOptions(combined);
+      } else {
+        setOptions(parsedSaved);
+      }
     } else {
-      // Превращаем массив строк в формат {label, value}
       const defaults = initialOptions[type].map(s => ({ label: s, value: s }));
       setOptions(defaults);
       localStorage.setItem(storageKey, JSON.stringify(defaults));

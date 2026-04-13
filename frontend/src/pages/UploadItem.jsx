@@ -2,38 +2,71 @@ import { useState, useEffect } from 'react';
 import api from '../api';
 import { useNavigate } from 'react-router-dom';
 import SmartSelect from '../components/SmartSelect';
+import { API_URL } from '../config';
 
 function UploadItem() {
-  const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
+  const [file, setFile] = useState(null); // Здесь храним реальный файл для отправки
+  const [preview, setPreview] = useState(null); // Ссылка для отображения картинки
   const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
-  
-  // Данные
+  const [loading, setLoading] = useState(false); // Состояние сохранения
+  const [isAnalyzing, setIsAnalyzing] = useState(false); // Состояние работы ИИ
+
+  // Данные полей
   const [category, setCategory] = useState('');
   const [color, setColor] = useState('');
   const [style, setStyle] = useState('');
   const [season, setSeason] = useState('');
 
   const navigate = useNavigate();
- 
-  const handleFileChange = (e) => {
+
+  // --- МАГИЯ ИИ: ВЫБОР ФАЙЛА И МГНОВЕННЫЙ АНАЛИЗ ---
+  const handleFileChange = async (e) => {
     const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      // Очищаем предыдущий objectURL, если был
-      if (preview) URL.revokeObjectURL(preview);
-      setFile(selectedFile);
-      setPreview(URL.createObjectURL(selectedFile));
+    if (!selectedFile) return;
+
+    // 1. Сразу сохраняем файл и показываем локальное превью
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(selectedFile);
+    setPreview(URL.createObjectURL(selectedFile));
+    
+    // 2. Начинаем анализ
+    setIsAnalyzing(true);
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      // Отправляем на новый эндпоинт анализа
+      const res = await api.post('/items/analyze', formData);
+      
+      const { category: aiCat, color: aiColor, image_path } = res.data;
+
+      // 3. Заполняем поля тем, что прислал ИИ
+      if (aiCat) setCategory(aiCat);
+      if (aiColor) setColor(aiColor);
+      
+      // Ставим имя файла в название (без расширения), если оно еще пустое
+      if (!name) {
+        const fileName = selectedFile.name.split('.')[0];
+        setName(fileName);
+      }
+
+      // 4. Обновляем превью на картинку БЕЗ фона
+      setPreview(`${API_URL}/${image_path}`);
+
+    } catch (err) {
+      console.error("Ошибка анализа ИИ:", err);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
-  
-  // Очищаем objectURL при размонтировании
+
   useEffect(() => {
     return () => {
-      if (preview) URL.revokeObjectURL(preview);
+      if (preview && preview.startsWith('blob:')) URL.revokeObjectURL(preview);
     };
   }, [preview]);
- 
+
+  // --- СОХРАНЕНИЕ ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) return alert("Пожалуйста, добавьте фото!");
@@ -44,34 +77,21 @@ function UploadItem() {
     formData.append('color', color);
     formData.append('style', style);
     formData.append('season', season);
+    formData.append('file', file);
 
     try {
       setLoading(true);
-      // Если файл приходит как объект с uri (в apk/webview), получаем blob
-      if (file && file.uri) {
-        const res = await fetch(file.uri);
-        const blob = await res.blob();
-        formData.append('file', blob, file.name || 'photo.jpg');
-      } else {
-        formData.append('file', file);
-      }
-
-      // НЕ указываем вручную Content-Type — axios/set browser установит правильный boundary
       await api.post('/items/', formData);
-
-      // Пометка для других экранов, чтобы они могли обновиться
-      try { localStorage.setItem('items_updated', Date.now().toString()); } catch (e) { /* noop */ }
-
+      try { localStorage.setItem('items_updated', Date.now().toString()); } catch (e) {}
       navigate('/wardrobe');
     } catch (error) {
-      alert('Ошибка при загрузке');
+      alert('Ошибка при сохранении');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    // Главный контейнер страницы
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       
       {/* Шапка */}
@@ -82,21 +102,25 @@ function UploadItem() {
         <h2 style={{ margin: '0 auto', paddingRight: '34px', color: 'var(--primary-green)' }}>Новая вещь</h2>
       </div>
 
-      {/* ФОРМА - добавляем width: 100% */}
-      <form 
-        onSubmit={handleSubmit} 
-        style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '15px', 
-          width: '100%', // <--- ВАЖНО: Форма на всю ширину
-          flex: 1,
-          paddingBottom: '120px'
-        }}
-      >
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '100%', flex: 1, paddingBottom: '120px' }}>
         
-        {/* Зона загрузки фото */}
-        <label className="upload-area">
+        {/* Зона загрузки фото с лоадером анализа */}
+        <label className="upload-area" style={{ position: 'relative' }}>
+          {isAnalyzing && (
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: 'rgba(255, 196, 214, 0.7)', // Твой розовый с прозрачностью
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              zIndex: 10, borderRadius: '24px'
+            }}>
+              <div className="loader-spinner" style={{ 
+                border: '4px solid #f3f3f3', borderTop: '4px solid var(--primary-green)',
+                borderRadius: '50%', width: '30px', height: '30px', animation: 'spin 1s linear infinite'
+              }}></div>
+              <span style={{ marginTop: '10px', fontWeight: 'bold', fontSize: '14px' }}>ИИ анализирует... ✨</span>
+            </div>
+          )}
+
           {preview ? (
             <img src={preview} alt="Preview" className="upload-preview" />
           ) : (
@@ -105,32 +129,56 @@ function UploadItem() {
               <span style={{display: 'block', marginTop: '10px', fontSize: '14px', color: '#888'}}>Нажми для фото</span>
             </div>
           )}
-          <input type="file" onChange={handleFileChange} hidden accept="image/*" />
+          <input type="file" onChange={handleFileChange} hidden accept="image/*" disabled={isAnalyzing} />
         </label>
 
         {/* Поля ввода */}
-        <input 
-          type="text" 
-          className="custom-input"
-          placeholder="Название" 
-          value={name} 
-          onChange={e => setName(e.target.value)} 
-          required 
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--primary-green)' }}>Название</label>
+          <input 
+            type="text" 
+            className="custom-input"
+            placeholder="Напр: Любимая футболка" 
+            value={name} 
+            onChange={e => setName(e.target.value)} 
+            required 
+          />
+        </div>
 
-        {/* Selects автоматически растянутся, если у них нет жесткой ширины */}
-        <SmartSelect type="category" value={category} onChange={setCategory} placeholder="Категория" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--primary-green)' }}>Категория</label>
+          <input 
+            type="text" 
+            className="custom-input"
+            placeholder="Определится автоматически..." 
+            value={category} 
+            onChange={e => setCategory(e.target.value)} 
+          />
+        </div>
+
         <SmartSelect type="color" value={color} onChange={setColor} placeholder="Цвет" />
         <SmartSelect type="style" value={style} onChange={setStyle} placeholder="Стиль" />
         <SmartSelect type="season" value={season} onChange={setSeason} placeholder="Сезон" />
         
-        {/* Распорка */}
         <div style={{ flex: 1 }}></div>
 
-        <button type="submit" className="auth-btn btn-primary" style={{ marginBottom: '20px' }} disabled={loading}>
-          {loading ? 'Загрузка...' : 'Сохранить'}
+        <button 
+            type="submit" 
+            className="auth-btn btn-primary" 
+            style={{ marginBottom: '20px' }} 
+            disabled={loading || isAnalyzing}
+        >
+          {loading ? 'Сохранение...' : 'Добавить в гардероб'}
         </button>
       </form>
+
+      {/* Добавляем стили для анимации спиннера */}
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

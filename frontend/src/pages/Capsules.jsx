@@ -171,23 +171,53 @@ function Capsules() {
 
   // === ФИЛЬТРАЦИЯ ===
   const filteredWardrobe = wardrobeItems.filter(item => {
-    // Скрываем то, что на холсте
+    // 1. Скрываем то, что уже перенесено на холст
     const isOnCanvas = canvasItems.some(canvasItem => canvasItem.id === item.id);
     if (isOnCanvas) return false;
 
-    // Режим подбора
+    // 2. ПОЛУЧАЕМ ВСЕ КАТЕГОРИИ, КОТОРЫЕ УЖЕ ЕСТЬ НА ХОЛСТЕ
+    const categoriesOnCanvas = canvasItems.map(i => i.category);
+
+    // --- ЛОГИКА ИСКЛЮЧЕНИЯ ДУБЛИКАТОВ СЛОТОВ ---
+    
+    // Группа "Обувь"
+    const isShoes = ['Кроссовки', 'Обувь', 'Сандалии', 'Ботинки', 'Туфли на каблуке', 'Шлепанцы', 'Спортивная обувь'].includes(item.category);
+    if (isShoes && categoriesOnCanvas.some(c => ['Кроссовки', 'Обувь', 'Сандалии', 'Ботинки', 'Туфли на каблуке', 'Шлепанцы', 'Спортивная обувь'].includes(c))) {
+        return false; // Обувь уже есть, вторую не предлагаем
+    }
+
+    // Группа "Низ"
+    const isBottom = ['Брюки', 'Шорты', 'Юбки', 'Джинсы', 'Леггинсы'].includes(item.category);
+    if (isBottom && categoriesOnCanvas.some(c => ['Брюки', 'Шорты', 'Юбки', 'Джинсы', 'Леггинсы', 'Платья'].includes(c))) {
+        return false; // Брюки или платье уже есть
+    }
+
+    // Группа "Платья/Комбинезоны" (занимают и верх, и низ)
+    const isFullBody = ['Платья', 'Комбинезоны'].includes(item.category);
+    if (isFullBody && categoriesOnCanvas.some(c => ['Платья', 'Комбинезоны', 'Брюки', 'Юбки', 'Шорты'].includes(c))) {
+        return false;
+    }
+
+    // Группа "Верхняя одежда" (Куртка на куртку нельзя)
+    const isOuterwear = ['Верхняя одежда', 'Куртки и пальто', 'Бомберы', 'Ветровки', 'Стеганые куртки', 'Кожаные куртки'].includes(item.category);
+    if (isOuterwear && categoriesOnCanvas.some(c => ['Верхняя одежда', 'Куртки и пальто', 'Бомберы', 'Ветровки', 'Стеганые куртки', 'Кожаные куртки'].includes(c))) {
+        return false;
+    }
+
+    // Группа "Легкий верх" (Футболки, рубашки, свитера) - МОЖНО СОВМЕЩАТЬ
+    // Здесь мы НЕ возвращаем false, позволяя слоить вещи.
+
+    // 3. ЕСЛИ ВКЛЮЧЕН РЕЖИМ ПОДБОРА (Магия ИИ)
     if (isMatchingMode && matchSourceItem) {
-        // Скрываем вещи той же категории (кроме аксессуаров)
-        if (item.category === matchSourceItem.category && item.category !== 'Аксесуарлары') return false;
-        
         return checkCompatibility(matchSourceItem, item);
     }
 
-    // Обычные фильтры
+    // 4. ОБЫЧНЫЕ ФИЛЬТРЫ (Категория, Цвет и т.д.)
     if (filterCategory && item.category !== filterCategory) return false;
     if (filterColor && item.color !== filterColor) return false;
     if (filterSeason && item.season !== filterSeason) return false;
     if (filterStyle && item.style !== filterStyle) return false;
+
     return true;
   });
 
@@ -252,15 +282,20 @@ function Capsules() {
     }
   };
 
-  const handleDeleteCapsule = async () => {
-    if (!id) return;
-    if (window.confirm("Удалить капсулу?")) {
-      try {
-        await api.delete(`/capsules/${id}`);
-        navigate('/capsules');
-      } catch (err) { alert("Ошибка удаления"); }
+const handleDeleteCapsule = async () => {
+  if (!id) return; // Если мы создаем новую, удалять нечего
+  if (window.confirm("Удалить эту капсулу навсегда?")) {
+    try {
+      // ПРОВЕРЬ ЭТУ СТРОКУ: слэш в начале и правильный ID
+      await api.delete(`/capsules/${id}`); 
+      alert("Капсула удалена");
+      navigate('/capsules'); // Уходим в список всех капсул
+    } catch (err) {
+      console.error(err);
+      alert("Не удалось удалить капсулу");
     }
-  };
+  }
+};
 
   const openSaveModal = () => {
     if (canvasItems.length === 0) return alert("Холст пуст!");
