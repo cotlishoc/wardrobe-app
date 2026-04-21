@@ -11,10 +11,8 @@ function UploadItem() {
   const [loading, setLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Списки из БД
   const [dbData, setDbData] = useState({ categories: [], colors: [], styles: [], seasons: [], fits: [] });
 
-  // Поля формы
   const [category, setCategory] = useState('');
   const [color, setColor] = useState('');
   const [style, setStyle] = useState('');
@@ -23,7 +21,6 @@ function UploadItem() {
 
   const navigate = useNavigate();
 
-  // Загружаем справочники при открытии
   useEffect(() => {
     const fetchData = async () => {
         try {
@@ -76,60 +73,31 @@ function UploadItem() {
   };
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+    /* 1. Добавляем page-padding для отступов от краев */
+    <div className="page-padding">
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
         <button onClick={() => navigate(-1)} className="back-btn">←</button>
         <h2 style={{ margin: '0 auto', color: 'var(--primary-green)' }}>Новая вещь</h2>
       </div>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', paddingBottom: '100px' }}>
-        <label className="upload-area" style={{ 
-          position: 'relative', 
-          overflow: 'hidden', 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center',
-          backgroundColor: 'var(--accent-pink)',
-          borderRadius: '24px',
-          aspectRatio: '3/4',
-          cursor: 'pointer'
-        }}>
-          {/* ЭТОТ БЛОК ТЕПЕРЬ ПЕРЕКРЫВАЕТ ТОЛЬКО ФОТО И ИДЕАЛЬНО ОТЦЕНТРОВАН */}
+      {/* 2. ИСПОЛЬЗУЕМ className="form-container" (это обеспечит отступ снизу) */}
+      <form onSubmit={handleSubmit} className="form-container">
+        
+        <label className="upload-area" style={{ position: 'relative' }}>
           {isAnalyzing && (
             <div style={{
-              position: 'absolute',
-              top: 0, left: 0, right: 0, bottom: 0,
-              backgroundColor: 'rgba(255, 196, 214, 0.8)', // Розовый фон с прозрачностью
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 10
+              position: 'absolute', inset: 0,
+              backgroundColor: 'rgba(255, 196, 214, 0.8)',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', zIndex: 10
             }}>
-              {/* Спиннер */}
-              <div className="spinner" style={{
-                width: '40px',
-                height: '40px',
-                border: '4px solid white',
-                borderTop: '4px solid var(--primary-green)',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-                marginBottom: '15px'
-              }}></div>
-              <span style={{ 
-                color: 'var(--primary-green)', 
-                fontWeight: 'bold', 
-                fontSize: '14px',
-                textAlign: 'center',
-                padding: '0 10px'
-              }}>
-                ИИ анализирует... ✨
-              </span>
+              <div className="spinner"></div>
+              <span style={{ color: 'var(--primary-green)', fontWeight: 'bold', marginTop: '10px' }}>ИИ анализирует...</span>
             </div>
           )}
 
           {preview ? (
-            <img src={preview} alt="Preview" className="upload-preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={preview} alt="Preview" className="upload-preview" />
           ) : (
             <div style={{ textAlign: 'center', color: '#a87b89' }}>
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
@@ -145,7 +113,7 @@ function UploadItem() {
         <SmartSelect options={dbData.colors} value={color} onChange={setColor} placeholder="Цвет" />
         <SmartSelect options={dbData.styles} value={style} onChange={setStyle} placeholder="Стиль" />
         <SmartSelect options={dbData.seasons} value={season} onChange={setSeason} placeholder="Сезон" />
-        <SmartSelect options={dbData.fits} value={fit} onChange={setFit} placeholder="Крой (Оверсайз/Слим/Базовый)" />
+        <SmartSelect options={dbData.fits} value={fit} onChange={setFit} placeholder="Крой (Fit)" />
 
         <button type="submit" className="auth-btn btn-primary" disabled={loading || isAnalyzing}>
           {loading ? 'Загрузка...' : 'Сохранить'}

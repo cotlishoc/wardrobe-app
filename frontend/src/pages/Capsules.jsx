@@ -15,6 +15,7 @@ function Capsules() {
   const navigate = useNavigate();
 
   const [wardrobeItems, setWardrobeItems] = useState([]);
+  const [dbData, setDbData] = useState({ categories: [], colors: [], styles: [], seasons: [] });
   const [canvasItems, setCanvasItems] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [maxZIndex, setMaxZIndex] = useState(10);
@@ -81,10 +82,34 @@ function Capsules() {
   };
 
   // 1. Загрузка вещей
+  
   useEffect(() => {
+    // Вещи
     api.get('/items/')
       .then(res => setWardrobeItems(res.data))
       .catch(err => console.error(err));
+
+    // --- ДОБАВЬ ЭТОТ БЛОК ДЛЯ ЗАГРУЗКИ ФИЛЬТРОВ ---
+    const fetchFilters = async () => {
+      try {
+        const [c, cl, st, se] = await Promise.all([
+          api.get('/categories'), 
+          api.get('/colors'),
+          api.get('/styles'), 
+          api.get('/seasons')
+        ]);
+        setDbData({ 
+          categories: c.data, 
+          colors: cl.data, 
+          styles: st.data, 
+          seasons: se.data 
+        });
+      } catch (e) { 
+        console.error("Ошибка загрузки справочников в капсулах:", e); 
+      }
+    };
+    fetchFilters();
+    // ----------------------------------------------
   }, []);
 
   // 2. Загрузка капсулы
@@ -169,54 +194,44 @@ function Capsules() {
     return colorMatch || styleMatch;
   };
 
-  // === ФИЛЬТРАЦИЯ ===
   const filteredWardrobe = wardrobeItems.filter(item => {
     // 1. Скрываем то, что уже перенесено на холст
-    const isOnCanvas = canvasItems.some(canvasItem => canvasItem.id === item.id);
-    if (isOnCanvas) return false;
+    if (canvasItems.some(canvasItem => canvasItem.id === item.id)) return false;
 
-    // 2. ПОЛУЧАЕМ ВСЕ КАТЕГОРИИ, КОТОРЫЕ УЖЕ ЕСТЬ НА ХОЛСТЕ
-    const categoriesOnCanvas = canvasItems.map(i => i.category);
+    // Подготовка данных для сравнения (нормализация)
+    const itemCategory = (item.category || "").trim().toLowerCase();
+    const itemColor = (item.color || "").trim().toLowerCase();
+    const itemSeason = (item.season || "").trim().toLowerCase();
+    const itemStyle = (item.style || "").trim().toLowerCase();
 
-    // --- ЛОГИКА ИСКЛЮЧЕНИЯ ДУБЛИКАТОВ СЛОТОВ ---
+    const selCategory = filterCategory.trim().toLowerCase();
+    const selColor = filterColor.trim().toLowerCase();
+    const selSeason = filterSeason.trim().toLowerCase();
+    const selStyle = filterStyle.trim().toLowerCase();
+
+    // 2. ЛОГИКА ИСКЛЮЧЕНИЯ СЛОТОВ (улучшенная)
+    const categoriesOnCanvas = canvasItems.map(i => (i.category || "").trim().toLowerCase());
     
-    // Группа "Обувь"
-    const isShoes = ['Кроссовки', 'Обувь', 'Сандалии', 'Ботинки', 'Туфли на каблуке', 'Шлепанцы', 'Спортивная обувь'].includes(item.category);
-    if (isShoes && categoriesOnCanvas.some(c => ['Кроссовки', 'Обувь', 'Сандалии', 'Ботинки', 'Туфли на каблуке', 'Шлепанцы', 'Спортивная обувь'].includes(c))) {
-        return false; // Обувь уже есть, вторую не предлагаем
-    }
+    const shoeCats = ['кроссовки', 'обувь', 'сандалии', 'ботинки', 'туфли на каблуке', 'шлепанцы', 'спортивная обувь'];
+    const bottomCats = ['брюки', 'шорты', 'юбки', 'джинсы', 'леггинсы'];
+    const topCats = ['верхняя одежда', 'куртки и пальто', 'бомберы', 'ветровки', 'стеганые куртки', 'кожаные куртки'];
 
-    // Группа "Низ"
-    const isBottom = ['Брюки', 'Шорты', 'Юбки', 'Джинсы', 'Леггинсы'].includes(item.category);
-    if (isBottom && categoriesOnCanvas.some(c => ['Брюки', 'Шорты', 'Юбки', 'Джинсы', 'Леггинсы', 'Платья'].includes(c))) {
-        return false; // Брюки или платье уже есть
-    }
+    if (shoeCats.includes(itemCategory) && categoriesOnCanvas.some(c => shoeCats.includes(c))) return false;
+    if (bottomCats.includes(itemCategory) && categoriesOnCanvas.some(c => bottomCats.includes(c) || c === 'платья')) return false;
+    if (topCats.includes(itemCategory) && categoriesOnCanvas.some(c => topCats.includes(c))) return false;
 
-    // Группа "Платья/Комбинезоны" (занимают и верх, и низ)
-    const isFullBody = ['Платья', 'Комбинезоны'].includes(item.category);
-    if (isFullBody && categoriesOnCanvas.some(c => ['Платья', 'Комбинезоны', 'Брюки', 'Юбки', 'Шорты'].includes(c))) {
-        return false;
-    }
-
-    // Группа "Верхняя одежда" (Куртка на куртку нельзя)
-    const isOuterwear = ['Верхняя одежда', 'Куртки и пальто', 'Бомберы', 'Ветровки', 'Стеганые куртки', 'Кожаные куртки'].includes(item.category);
-    if (isOuterwear && categoriesOnCanvas.some(c => ['Верхняя одежда', 'Куртки и пальто', 'Бомберы', 'Ветровки', 'Стеганые куртки', 'Кожаные куртки'].includes(c))) {
-        return false;
-    }
-
-    // Группа "Легкий верх" (Футболки, рубашки, свитера) - МОЖНО СОВМЕЩАТЬ
-    // Здесь мы НЕ возвращаем false, позволяя слоить вещи.
-
-    // 3. ЕСЛИ ВКЛЮЧЕН РЕЖИМ ПОДБОРА (Магия ИИ)
+    // 3. СОВМЕЩЕНИЕ РЕЖИМА ПОДБОРА И ФИЛЬТРОВ
+    // Сначала проверяем на совместимость (если режим включен)
     if (isMatchingMode && matchSourceItem) {
-        return checkCompatibility(matchSourceItem, item);
+      const isCompatible = checkCompatibility(matchSourceItem, item);
+      if (!isCompatible) return false;
     }
 
-    // 4. ОБЫЧНЫЕ ФИЛЬТРЫ (Категория, Цвет и т.д.)
-    if (filterCategory && item.category !== filterCategory) return false;
-    if (filterColor && item.color !== filterColor) return false;
-    if (filterSeason && item.season !== filterSeason) return false;
-    if (filterStyle && item.style !== filterStyle) return false;
+    // 4. ПРИМЕНЕНИЕ РУЧНЫХ ФИЛЬТРОВ (теперь они работают вместе с ИИ)
+    if (filterCategory && itemCategory !== selCategory) return false;
+    if (filterColor && itemColor !== selColor) return false;
+    if (filterSeason && itemSeason !== selSeason) return false;
+    if (filterStyle && itemStyle !== selStyle) return false;
 
     return true;
   });
@@ -582,16 +597,19 @@ const handleDeleteCapsule = async () => {
       )}
 
       {isFilterOpen && (
-         <div className="filter-modal-overlay" onClick={() => setIsFilterOpen(false)}>
+        <div className="filter-modal-overlay" onClick={() => setIsFilterOpen(false)}>
           <div className="filter-modal" onClick={e => e.stopPropagation()}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: '20px'}}>
                 <h3 style={{margin: 0}}>Фильтры</h3>
                 <button onClick={() => setIsFilterOpen(false)} style={{background:'none', border:'none', fontSize:'28px', color: 'var(--primary-green)'}}>&times;</button>
             </div>
-            <SmartSelect type="category" value={filterCategory} onChange={setFilterCategory} placeholder="Категория" />
-            <SmartSelect type="color" value={filterColor} onChange={setFilterColor} placeholder="Цвет" />
-            <SmartSelect type="season" value={filterSeason} onChange={setFilterSeason} placeholder="Сезон" />
-            <SmartSelect type="style" value={filterStyle} onChange={setFilterStyle} placeholder="Стиль" />
+
+            {/* ПЕРЕДАЕМ ДАННЫЕ В OPTIONS ТАК ЖЕ, КАК В ГАРДЕРОБЕ */}
+            <SmartSelect options={dbData.categories} value={filterCategory} onChange={setFilterCategory} placeholder="Категория" />
+            <SmartSelect options={dbData.colors} value={filterColor} onChange={setFilterColor} placeholder="Цвет" />
+            <SmartSelect options={dbData.seasons} value={filterSeason} onChange={setFilterSeason} placeholder="Сезон" />
+            <SmartSelect options={dbData.styles} value={filterStyle} onChange={setFilterStyle} placeholder="Стиль" />
+
             <div className="filter-actions" style={{marginTop: '25px'}}>
               <button className="auth-btn btn-primary" onClick={() => setIsFilterOpen(false)}>Применить</button>
               <button className="auth-btn" onClick={clearFilters} style={{background: '#ffe0e9', color: '#e05d82', marginTop: '10px'}}>Сбросить</button>

@@ -54,9 +54,9 @@ class CapsuleResponse(BaseModel):
     id: int
     user_id: int
     name: str
-    image_path: Optional[str] = None # Добавили
-    layout: Optional[str] = None     # Добавили
-    created_at: datetime
+    image_path: Optional[str] = None
+    layout: Optional[str] = None
+    # created_at: datetime 
     items: List[ItemResponse] = []
 
     class Config:

@@ -200,7 +200,18 @@ async def create_item(
 
 @app.get("/items/", response_model=List[schemas.ItemResponse])
 def read_items(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
-    return crud.get_items(db, user_id=current_user.id)
+    # Используем joinedload, чтобы вытащить связанные названия категорий, цветов и т.д.
+    db_items = db.query(models.Item).options(
+        joinedload(models.Item.category_rel),
+        joinedload(models.Item.color_rel),
+        joinedload(models.Item.style_rel),
+        joinedload(models.Item.season_rel),
+        joinedload(models.Item.fit_rel)
+    ).filter(models.Item.user_id == current_user.id).all()
+
+    # ВАЖНО: Мы должны прогнать каждый элемент через нашу схему, 
+    # чтобы превратить объекты БД в красивые строки для фронтенда
+    return [schemas.ItemResponse.from_orm(item) for item in db_items]
 
 @app.get("/items/{item_id}", response_model=schemas.ItemResponse)
 def read_item(item_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
@@ -438,3 +449,56 @@ def get_seasons(db: Session = Depends(database.get_db)):
 @app.get("/fits")
 def get_fits(db: Session = Depends(database.get_db)):
     return [c.name for c in db.query(models.Fit).all()]
+
+@app.put("/capsules/{capsule_id}", response_model=schemas.CapsuleResponse)
+async def update_capsule(
+    capsule_id: int,
+    name: str = Form(...),
+    layout: str = Form(...),
+    item_ids: str = Form(...),
+    file: UploadFile = File(None),
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    # 1. Ищем существующую капсулу
+    db_capsule = db.query(models.Capsule).filter(
+        models.Capsule.id == capsule_id, 
+        models.Capsule.user_id == current_user.id
+    ).first()
+
+    if not db_capsule:
+        raise HTTPException(status_code=404, detail="Капсула не найдена или доступ запрещен")
+
+    # 2. Обновляем основные поля
+    db_capsule.name = name
+    db_capsule.layout = layout
+
+    # 3. Если прислали новый скриншот (файл)
+    if file:
+        # Удаляем старый файл с диска, если он был
+        if db_capsule.image_path:
+            old_path = os.path.join(os.getcwd(), db_capsule.image_path)
+            if os.path.exists(old_path):
+                try:
+                    os.remove(old_path)
+                except Exception as e:
+                    logger.error(f"Ошибка удаления старого фото: {e}")
+
+        # Сохраняем новый файл
+        unique_filename = f"capsule_{uuid.uuid4()}.png"
+        file_path = os.path.join(UPLOAD_DIR, unique_filename)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        db_capsule.image_path = f"static/uploads/{unique_filename}"
+
+    # 4. Обновляем связи с вещами (Many-to-Many)
+    ids_list = json.loads(item_ids)
+    if ids_list is not None:
+        db_capsule.items = db.query(models.Item).filter(
+            models.Item.id.in_(ids_list), 
+            models.Item.user_id == current_user.id
+        ).all()
+
+    db.commit()
+    db.refresh(db_capsule)
+    return db_capsule

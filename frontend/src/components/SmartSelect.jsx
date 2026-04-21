@@ -2,7 +2,6 @@ import React from 'react';
 import CreatableSelect from 'react-select/creatable';
 
 function SmartSelect({ options, value, onChange, placeholder }) {
-  // Добавляем (options || []), чтобы если пришел undefined, код не сломался
   const formattedOptions = (options || []).map(opt => ({ label: opt, value: opt }));
   const currentValue = value ? { label: value, value: value } : null;
 
@@ -18,7 +17,12 @@ function SmartSelect({ options, value, onChange, placeholder }) {
         onChange={(newValue) => onChange(newValue ? newValue.value : '')}
         onCreateOption={(inputValue) => onChange(inputValue)}
         placeholder="Выбрать..."
+        
+        // --- ЭТИ ТРИ СТРОЧКИ РЕШАЮТ ПРОБЛЕМУ СКРЫТИЯ ---
+        menuPortalTarget={document.body} 
+        menuPlacement="auto" 
         styles={{
+            menuPortal: (base) => ({ ...base, zIndex: 9999 }), // Поверх всего
             control: (base) => ({
                 ...base,
                 backgroundColor: '#ffc4d6',
@@ -26,6 +30,11 @@ function SmartSelect({ options, value, onChange, placeholder }) {
                 border: 'none',
                 padding: '2px 8px',
                 boxShadow: 'none'
+            }),
+            menu: (base) => ({
+                ...base,
+                borderRadius: '12px',
+                zIndex: 9999
             })
         }}
       />

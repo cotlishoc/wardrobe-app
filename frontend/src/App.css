@@ -54,16 +54,16 @@ body {
 
 /* === 3. ОБЛАСТЬ КОНТЕНТА === */
 .content {
-  flex: 1;               /* Занимает всё место между верхом и меню */
-  display: flex;         /* Включаем Flex */
-  flex-direction: column;
-  
+  flex: 1;
   width: 100%;
-  overflow-y: auto;      /* Скролл внутри */
+  overflow-y: auto; /* Включаем вертикальную прокрутку */
   overflow-x: hidden;
-  
-  padding: 20px;
-  padding-bottom: 100px; /* Место под меню */
+  -webkit-overflow-scrolling: touch; /* Плавный скролл на iOS */
+}
+
+.page-padding {
+  padding: 10px;
+  min-height: 100%; /* Чтобы страница растягивалась */
 }
 
 /* !!! КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ !!! */
@@ -425,4 +425,20 @@ h2, h3 {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+
+/* Класс для страниц с формами (Добавление/Редактирование) */
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 120px !important; /* Большой отступ, чтобы кнопки не закрывало меню */
+}
+
+/* Утилита для вертикальных отступов */
+.flex-col-gap {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
