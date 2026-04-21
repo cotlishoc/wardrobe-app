@@ -15,10 +15,11 @@ import logging
 from rembg import remove
 from PIL import Image
 import io
-
+from sqlalchemy.orm import Session, joinedload
 # Импорт классификатора
 from .classifier import ai_classifier, get_dominant_color
 from . import models, schemas, crud, database
+import time
 
 
 logging.basicConfig(level=logging.INFO)
@@ -28,6 +29,55 @@ logger = logging.getLogger(__name__)
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
+
+def seed_database(db: Session):
+    # 1. Цвета (твои 60+ цветов)
+    colors = [
+        "Белый", "Молочный", "Айвори", "Бежевый", "Песочный", "Палевый", 
+        "Тан / Светло-коричневый", "Верблюжий (Camel)", "Черный", "Антрацитовый", 
+        "Графитовый", "Темно-серый", "Серый", "Серебристый", "Светло-серый", 
+        "Грифельный", "Темно-синий (Midnight)", "Нави (Navy)", "Индиго", 
+        "Королевский синий", "Классический деним", "Светло-голубой деним", 
+        "Небесный", "Бирюзовый", "Морская волна", "Стальной синий", "Лазурный", 
+        "Пыльная роза", "Светло-розовый", "Фуксия", "Пурпурный", "Малиновый", 
+        "Лавандовый", "Фиолетовый", "Сливовый", "Пудровый", "Бордовый / Марсала", 
+        "Винный", "Красный", "Алый", "Коралловый", "Оранжево-красный", 
+        "Оранжевый", "Темно-оранжевый", "Кирпичный", "Темно-оливковый", 
+        "Оливковый", "Болотный", "Темно-зеленый", "Лесной зеленый", "Лаймовый", 
+        "Шалфей / Пыльно-зеленый", "Весенний зеленый", "Шоколадный", "Терракотовый", 
+        "Коричневый", "Охристый", "Горчичный", "Золотистый", "Желтый", "Навахо / Кремовый"
+    ]
+    # 2. Категории
+    categories = ["Футболки и майки", "Брюки", "Платья", "Кроссовки", "Обувь", "Куртки", "Свитеры", "Шорты", "Юбки", "Костюмы", "Сумки", "Аксессуары"]
+    # 3. Стили
+    styles = ["Повседневный", "Деловой", "Спортивный", "Вечерний", "Минимализм", "Уличный"]
+    # 4. Сезоны
+    seasons = ["Лето", "Зима", "Демисезон", "Всесезон"]
+    # 5. Крой (Твое новое требование)
+    fits = ["Базовый", "Приталенный (Slim)", "Оверсайз (Oversize)"]
+
+    # Функция-помощник для вставки
+    def insert_if_not_exists(model, data_list):
+        for name in data_list:
+            if not db.query(model).filter_by(name=name).first():
+                db.add(model(name=name))
+    
+    insert_if_not_exists(models.Color, colors)
+    insert_if_not_exists(models.Category, categories)
+    insert_if_not_exists(models.Style, styles)
+    insert_if_not_exists(models.Season, seasons)
+    insert_if_not_exists(models.Fit, fits)
+    db.commit()
+
+# Запускаем наполнение при старте приложения
+@app.on_event("startup")
+def on_startup():
+    db = database.SessionLocal()
+    try:
+        seed_database(db)
+        logger.info("Database seeded successfully")
+    finally:
+        db.close()
 
 # --- НАСТРОЙКИ ---
 SECRET_KEY = "my_super_secret_key_change_me_in_production"
@@ -61,12 +111,12 @@ app.add_middleware(
 
 # --- НАСТРОЙКА ПАПОК ---
 # Локально BASE_UPLOAD_DIR будет "static"
-BASE_DIR = "static"
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-TEMP_DIR = os.path.join(BASE_DIR, "temp")
+BASE_UPLOAD_DIR = "static"
+UPLOAD_DIR = os.path.join(BASE_UPLOAD_DIR, "uploads")
+TEMP_DIR = os.path.join(BASE_UPLOAD_DIR, "temp")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(TEMP_DIR, exist_ok=True)
-app.mount("/static", StaticFiles(directory=BASE_DIR), name="static")
+app.mount("/static", StaticFiles(directory=BASE_UPLOAD_DIR), name="static")
 
 # --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 def create_access_token(data: dict):
@@ -106,47 +156,46 @@ def login(login_data: LoginRequest, db: Session = Depends(database.get_db)):
 
 # --- ВЕЩИ (ITEMS) ---
 
-@app.post("/items/", response_model=schemas.ItemResponse)
+@app.post("/items/")
 async def create_item(
-    background_tasks: BackgroundTasks,
     name: str = Form(...),
     category: str = Form(None),
     color: str = Form(None),
     style: str = Form(None),
     season: str = Form(None),
+    fit: str = Form(None), # Новое поле
     file: UploadFile = File(...),
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    # 1. Читаем файл и СРАЗУ удаляем фон
+    # 1. Сохранение файла и удаление фона (логика rembg как раньше)
     file_content = await file.read()
-    try:
-        # Удаляем фон через rembg
-        no_bg_bytes = remove(file_content)
-        img = Image.open(io.BytesIO(no_bg_bytes)).convert('RGBA')
-    except Exception as e:
-        logger.error(f"Rembg error: {e}")
-        # Если не вышло - берем оригинал
-        img = Image.open(io.BytesIO(file_content)).convert('RGBA')
-
-    # 2. Сохраняем чистую картинку
+    no_bg_bytes = remove(file_content)
     unique_filename = f"{uuid.uuid4()}.png"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
-    img.save(file_path, format='PNG', optimize=True)
+    Image.open(io.BytesIO(no_bg_bytes)).convert('RGBA').save(file_path, format='PNG')
 
-    # 3. Теперь ИИ видит только одежду на прозрачном фоне!
-    if not category or category in ["null", "", "undefined"]:
-        category = ai_classifier.predict(file_path)
+    # 2. Получение ID из текстовых названий
+    cat_id = get_id_by_name(db, models.Category, category)
+    col_id = get_id_by_name(db, models.Color, color)
+    sty_id = get_id_by_name(db, models.Style, style)
+    sea_id = get_id_by_name(db, models.Season, season)
+    fit_id = get_id_by_name(db, models.Fit, fit)
 
-    if not color or color in ["null", "", "undefined"]:
-        # Вызываем обновленную функцию цвета (код ниже)
-        color = get_dominant_color(file_path)
-        logger.info(f"AI Detected Color (No BG): {color}")
-
-    db_path = f"static/uploads/{unique_filename}"
-    item_data = schemas.ItemCreate(name=name, category=category, color=color, style=style, season=season)
-    db_item = crud.create_item(db=db, item=item_data, user_id=current_user.id, image_path=db_path)
-    
+    # 3. Сохранение в базу
+    db_item = models.Item(
+        name=name,
+        user_id=current_user.id,
+        image_path=f"static/uploads/{unique_filename}",
+        category_id=cat_id,
+        color_id=col_id,
+        style_id=sty_id,
+        season_id=sea_id,
+        fit_id=fit_id
+    )
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
     return db_item
 
 @app.get("/items/", response_model=List[schemas.ItemResponse])
@@ -155,9 +204,20 @@ def read_items(db: Session = Depends(database.get_db), current_user: models.User
 
 @app.get("/items/{item_id}", response_model=schemas.ItemResponse)
 def read_item(item_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
-    item = db.query(models.Item).filter(models.Item.id == item_id).first()
-    if not item or item.user_id != current_user.id: raise HTTPException(status_code=403)
-    return item
+    # Используем joinedload для всех связей, чтобы вытащить названия вместо ID
+    db_item = db.query(models.Item).options(
+        joinedload(models.Item.category_rel),
+        joinedload(models.Item.color_rel),
+        joinedload(models.Item.style_rel),
+        joinedload(models.Item.season_rel),
+        joinedload(models.Item.fit_rel)
+    ).filter(models.Item.id == item_id).first()
+
+    if not db_item or db_item.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    # ВАЖНО: вызываем наш метод преобразования
+    return schemas.ItemResponse.from_orm(db_item)
 
 # --- ИСПРАВЛЕННЫЙ ПУТЬ РЕДАКТИРОВАНИЯ ---
 @app.put("/items/{item_id}")
@@ -168,6 +228,7 @@ async def update_item(
     color: str = Form(None),
     style: str = Form(None),
     season: str = Form(None),
+    fit: str = Form(None), # Новое поле
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -175,21 +236,13 @@ async def update_item(
     if not db_item or db_item.user_id != current_user.id:
         raise HTTPException(status_code=403)
 
-    full_path = os.path.join(os.getcwd(), db_item.image_path)
-
-    # Переопределение категории, если стерли
-    if not category or category in ["null", "", "undefined"]:
-        category = ai_classifier.predict(full_path)
-
-    # Переопределение цвета, если стерли
-    if not color or color in ["null", "", "undefined"]:
-        color = get_dominant_color(full_path)
-
+    # Обновляем ID, находя их по переданным строкам
     db_item.name = name
-    db_item.category = category
-    db_item.color = color
-    db_item.style = style
-    db_item.season = season
+    db_item.category_id = get_id_by_name(db, models.Category, category)
+    db_item.color_id = get_id_by_name(db, models.Color, color)
+    db_item.style_id = get_id_by_name(db, models.Style, style)
+    db_item.season_id = get_id_by_name(db, models.Season, season)
+    db_item.fit_id = get_id_by_name(db, models.Fit, fit)
     
     db.commit()
     return db_item
@@ -262,28 +315,33 @@ def images_last_update():
     return {"last_update": datetime.utcnow().isoformat()}
 
 
+import time # Добавь в импорты в начало файла
+
 @app.post("/items/analyze")
 async def analyze_item(file: UploadFile = File(...)):
-    """Эндпоинт для мгновенного анализа фото перед сохранением"""
     try:
+        # --- БЛОК ОЧИСТКИ СТАРЫХ ФАЙЛОВ ---
+        now = time.time()
+        for f in os.listdir(TEMP_DIR):
+            f_path = os.path.join(TEMP_DIR, f)
+            # Если файл в temp лежит дольше 15 минут (900 сек) — удаляем
+            if os.stat(f_path).st_mtime < now - 900:
+                try:
+                    os.remove(f_path)
+                except: pass
+        # ----------------------------------
+
         file_content = await file.read()
-        
-        # 1. СРАЗУ удаляем фон (чтобы пользователь видел результат)
         no_bg_bytes = remove(file_content)
         img = Image.open(io.BytesIO(no_bg_bytes)).convert('RGBA')
         
-        # 2. Сохраняем во временную папку (static/temp)
-        temp_dir = os.path.join(BASE_UPLOAD_DIR, "temp")
-        os.makedirs(temp_dir, exist_ok=True)
         unique_filename = f"temp_{uuid.uuid4()}.png"
-        file_path = os.path.join(temp_dir, unique_filename)
+        file_path = os.path.join(TEMP_DIR, unique_filename)
         img.save(file_path, format='PNG')
 
-        # 3. Запускаем ИИ (категория и цвет)
         predicted_category = ai_classifier.predict(file_path)
         predicted_color = get_dominant_color(file_path)
 
-        # Возвращаем данные и путь к временному файлу
         return {
             "category": predicted_category,
             "color": predicted_color,
@@ -291,7 +349,7 @@ async def analyze_item(file: UploadFile = File(...)):
         }
     except Exception as e:
         logger.error(f"Analysis error: {e}")
-        raise HTTPException(status_code=500, detail="Ошибка при анализе фото")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/items/{item_id}/reanalyze")
 async def reanalyze_existing_item(
@@ -348,3 +406,35 @@ def delete_capsule(
     db.commit()
     
     return {"ok": True}
+
+# Помощник для поиска ID по названию
+def get_id_by_name(db: Session, model, name: str):
+    if not name or name in ["null", "", "undefined"]: return None
+    result = db.query(model).filter(model.name == name).first()
+    if not result: # Если вдруг ИИ выдал новый цвет, которого нет в списке - добавим его
+        new_obj = model(name=name)
+        db.add(new_obj)
+        db.commit()
+        db.refresh(new_obj)
+        return new_obj.id
+    return result.id
+
+@app.get("/categories")
+def get_categories(db: Session = Depends(database.get_db)):
+    return [c.name for c in db.query(models.Category).all()]
+
+@app.get("/colors")
+def get_colors(db: Session = Depends(database.get_db)):
+    return [c.name for c in db.query(models.Color).all()]
+
+@app.get("/styles")
+def get_styles(db: Session = Depends(database.get_db)):
+    return [c.name for c in db.query(models.Style).all()]
+
+@app.get("/seasons")
+def get_seasons(db: Session = Depends(database.get_db)):
+    return [c.name for c in db.query(models.Season).all()]
+
+@app.get("/fits")
+def get_fits(db: Session = Depends(database.get_db)):
+    return [c.name for c in db.query(models.Fit).all()]

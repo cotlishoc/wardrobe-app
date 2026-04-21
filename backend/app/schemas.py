@@ -13,14 +13,33 @@ class ItemBase(BaseModel):
 class ItemCreate(ItemBase):
     pass # image_path добавляем вручную при загрузке
 
-class ItemResponse(ItemBase):
+class ItemResponse(BaseModel):
     id: int
-    user_id: int
-    image_path: Optional[str]
-    created_at: datetime
+    name: str
+    image_path: str
+    # Эти поля будут автоматически заполняться строками из связанных моделей
+    category: Optional[str] = None
+    color: Optional[str] = None
+    style: Optional[str] = None
+    season: Optional[str] = None
+    fit: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+    # Специальный метод для преобразования объекта БД в схему
+    @classmethod
+    def from_orm(cls, obj):
+        return cls(
+            id=obj.id,
+            name=obj.name,
+            image_path=obj.image_path,
+            category=obj.category_rel.name if obj.category_rel else None,
+            color=obj.color_rel.name if obj.color_rel else None,
+            style=obj.style_rel.name if obj.style_rel else None,
+            season=obj.season_rel.name if obj.season_rel else None,
+            fit=obj.fit_rel.name if obj.fit_rel else None
+        )
 
 # --- CAPSULE SCHEMAS ---
 class CapsuleBase(BaseModel):
