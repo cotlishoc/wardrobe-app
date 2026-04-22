@@ -315,33 +315,58 @@ h2, h3 {
 }
 
 .capsule-wardrobe {
-  height: 40%;
-  padding-bottom: 100px;
+  height: 45%;           /* Высота нижней панели */
+  background: #ffffff;
+  border-top: 1px solid #eee;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 10;
+  overflow-y: auto; /* Разрешаем прокрутку всей нижней панели */
 }
 
 .capsule-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 10px;
-  overflow-y: auto;
-  padding: 10px 20px;
+  display: grid !important;
+  /* Адаптивное количество колонок: столько, сколько помещается в контейнер */
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)) !important;
+  /* Высота строк минимум 80px, чтобы ячейки были читабельны; строки могут расти */
+  grid-auto-rows: minmax(80px, auto) !important;
+  /* Выравнивание содержимого в ячейках по верху */
+  align-items: start !important;
+  gap: 12px !important;
+  padding: 15px !important;
+  /* Больше нижнего паддинга, чтобы элементы не попадали под нижнее меню */
+  padding-bottom: 160px !important;
+  /* Оставляем прокрутку родителю (.capsule-wardrobe) */
+  overflow-y: visible !important;
+  flex: 1;
 }
 
 .mini-card {
-  aspect-ratio: 1;
-  background: white;
+  width: 100% !important;
+  aspect-ratio: 1 / 1 !important;   /* Квадратные ячейки */
+  position: static !important;
+  align-self: stretch !important;
+  /* Минимальный размер карточки, чтобы изображение не было меньше 50x50 */
+  min-width: 50px !important;
+  min-height: 50px !important;
+  background: #f9f9f9;
   border-radius: 12px;
   overflow: hidden;
-  cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  border: 1px solid #eee;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .mini-card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 50px;
+  min-height: 50px;
+  object-fit: contain;
+  display: block;
 }
 
 /* RND STYLES */
@@ -441,4 +466,19 @@ h2, h3 {
   display: flex;
   flex-direction: column;
   gap: 15px;
+}
+
+
+/* Центровка иконки настроек */
+.pref-btn {
+  width: 45px;
+  height: 45px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  font-size: 20px;
+  cursor: pointer;
 }

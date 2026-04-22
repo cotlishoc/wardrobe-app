@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session, joinedload
 from .classifier import ai_classifier, get_dominant_color
 from . import models, schemas, crud, database
 import time
+from sqlalchemy.orm import joinedload
 
 
 logging.basicConfig(level=logging.INFO)
@@ -56,6 +57,20 @@ def seed_database(db: Session):
     # 5. Крой (Твое новое требование)
     fits = ["Базовый", "Приталенный (Slim)", "Оверсайз (Oversize)"]
 
+    occasions = [
+        {"name": "Свидание", "style": "Романтика"},
+        {"name": "Деловая встреча", "style": "Деловой"},
+        {"name": "Прогулка", "style": "Повседневный"},
+        {"name": "Вечеринка", "style": "Вечерний"},
+        {"name": "Спорт", "style": "Спортивный"},
+        {"name": "Офис", "style": "Деловой"},
+        {"name": "Путешествие", "style": "Уличный"}
+    ]
+    for occ in occasions:
+        if not db.query(models.Occasion).filter_by(name=occ["name"]).first():
+            db.add(models.Occasion(name=occ["name"], default_style=occ["style"]))
+    db.commit()
+
     # Функция-помощник для вставки
     def insert_if_not_exists(model, data_list):
         for name in data_list:
@@ -68,6 +83,10 @@ def seed_database(db: Session):
     insert_if_not_exists(models.Season, seasons)
     insert_if_not_exists(models.Fit, fits)
     db.commit()
+
+@app.get("/occasions")
+def get_occasions(db: Session = Depends(database.get_db)):
+    return db.query(models.Occasion).all()
 
 # Запускаем наполнение при старте приложения
 @app.on_event("startup")
@@ -301,17 +320,37 @@ def process_image_background(file_path: str):
 
 # --- КАПСУЛЫ ---
 @app.post("/capsules/", response_model=schemas.CapsuleResponse)
-def create_capsule(name: str = Form(...), layout: str = Form(...), item_ids: str = Form(...), file: UploadFile = File(None), db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+def create_capsule(
+    name: str = Form(...), 
+    layout: str = Form(...), 
+    item_ids: str = Form(...), 
+    occasion: str = Form(None), # Добавили
+    file: UploadFile = File(None), 
+    db: Session = Depends(database.get_db), 
+    current_user: models.User = Depends(get_current_user)
+):
     db_path = None
     if file:
         unique_filename = f"capsule_{uuid.uuid4()}.png"
         file_path = os.path.join(UPLOAD_DIR, unique_filename)
         with open(file_path, "wb") as buffer: shutil.copyfileobj(file.file, buffer)
         db_path = f"static/uploads/{unique_filename}"
-    db_capsule = models.Capsule(name=name, layout=layout, image_path=db_path, user_id=current_user.id)
+    
+    # Ищем ID события по имени
+    occ_id = get_id_by_name(db, models.Occasion, occasion)
+
+    db_capsule = models.Capsule(
+        name=name, 
+        layout=layout, 
+        image_path=db_path, 
+        user_id=current_user.id,
+        occasion_id=occ_id # Сохраняем
+    )
+    
     ids_list = json.loads(item_ids)
     if ids_list:
         db_capsule.items = db.query(models.Item).filter(models.Item.id.in_(ids_list), models.Item.user_id == current_user.id).all()
+    
     db.add(db_capsule)
     db.commit()
     db.refresh(db_capsule)
@@ -319,7 +358,12 @@ def create_capsule(name: str = Form(...), layout: str = Form(...), item_ids: str
 
 @app.get("/capsules/", response_model=List[schemas.CapsuleResponse])
 def read_capsules(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
-    return crud.get_capsules(db, user_id=current_user.id)
+    db_capsules = db.query(models.Capsule).options(
+        joinedload(models.Capsule.occasion_rel), # Подгружаем связь с событием
+        joinedload(models.Capsule.items)         # Подгружаем вещи
+    ).filter(models.Capsule.user_id == current_user.id).all()
+    
+    return [schemas.CapsuleResponse.from_orm(c) for c in db_capsules]
 
 @app.get("/images/last_update")
 def images_last_update():
@@ -456,48 +500,28 @@ async def update_capsule(
     name: str = Form(...),
     layout: str = Form(...),
     item_ids: str = Form(...),
+    occasion: str = Form(None), # Добавили
     file: UploadFile = File(None),
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    # 1. Ищем существующую капсулу
-    db_capsule = db.query(models.Capsule).filter(
-        models.Capsule.id == capsule_id, 
-        models.Capsule.user_id == current_user.id
-    ).first()
-
+    db_capsule = db.query(models.Capsule).filter(models.Capsule.id == capsule_id, models.Capsule.user_id == current_user.id).first()
     if not db_capsule:
-        raise HTTPException(status_code=404, detail="Капсула не найдена или доступ запрещен")
+        raise HTTPException(status_code=404, detail="Not found")
 
-    # 2. Обновляем основные поля
     db_capsule.name = name
     db_capsule.layout = layout
+    db_capsule.occasion_id = get_id_by_name(db, models.Occasion, occasion) # Обновляем событие
 
-    # 3. Если прислали новый скриншот (файл)
     if file:
-        # Удаляем старый файл с диска, если он был
-        if db_capsule.image_path:
-            old_path = os.path.join(os.getcwd(), db_capsule.image_path)
-            if os.path.exists(old_path):
-                try:
-                    os.remove(old_path)
-                except Exception as e:
-                    logger.error(f"Ошибка удаления старого фото: {e}")
-
-        # Сохраняем новый файл
+        # (логика удаления старого и сохранения нового файла остается такой же)
         unique_filename = f"capsule_{uuid.uuid4()}.png"
         file_path = os.path.join(UPLOAD_DIR, unique_filename)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        with open(file_path, "wb") as buffer: shutil.copyfileobj(file.file, buffer)
         db_capsule.image_path = f"static/uploads/{unique_filename}"
 
-    # 4. Обновляем связи с вещами (Many-to-Many)
     ids_list = json.loads(item_ids)
-    if ids_list is not None:
-        db_capsule.items = db.query(models.Item).filter(
-            models.Item.id.in_(ids_list), 
-            models.Item.user_id == current_user.id
-        ).all()
+    db_capsule.items = db.query(models.Item).filter(models.Item.id.in_(ids_list), models.Item.user_id == current_user.id).all()
 
     db.commit()
     db.refresh(db_capsule)

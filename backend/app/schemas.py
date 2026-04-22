@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime
 
 # --- ITEM SCHEMAS ---
 class ItemBase(BaseModel):
@@ -9,15 +8,15 @@ class ItemBase(BaseModel):
     color: Optional[str] = None
     style: Optional[str] = None
     season: Optional[str] = None
+    fit: Optional[str] = None
 
 class ItemCreate(ItemBase):
-    pass # image_path добавляем вручную при загрузке
+    pass
 
 class ItemResponse(BaseModel):
     id: int
     name: str
     image_path: str
-    # Эти поля будут автоматически заполняться строками из связанных моделей
     category: Optional[str] = None
     color: Optional[str] = None
     style: Optional[str] = None
@@ -27,7 +26,6 @@ class ItemResponse(BaseModel):
     class Config:
         from_attributes = True
 
-    # Специальный метод для преобразования объекта БД в схему
     @classmethod
     def from_orm(cls, obj):
         return cls(
@@ -44,11 +42,10 @@ class ItemResponse(BaseModel):
 # --- CAPSULE SCHEMAS ---
 class CapsuleBase(BaseModel):
     name: str
-    goal: Optional[str] = None
-    description: Optional[str] = None
 
 class CapsuleCreate(CapsuleBase):
-    item_ids: List[int] # Список ID вещей, которые входят в капсулу
+    item_ids: List[int]
+    occasion: Optional[str] = None 
 
 class CapsuleResponse(BaseModel):
     id: int
@@ -56,22 +53,42 @@ class CapsuleResponse(BaseModel):
     name: str
     image_path: Optional[str] = None
     layout: Optional[str] = None
-    # created_at: datetime 
+    occasion: Optional[str] = None
     items: List[ItemResponse] = []
 
     class Config:
         from_attributes = True
 
+    @classmethod
+    def from_orm(cls, obj):
+        return cls(
+            id=obj.id,
+            user_id=obj.user_id,
+            name=obj.name,
+            image_path=obj.image_path,
+            layout=obj.layout,
+            occasion=obj.occasion_rel.name if obj.occasion_rel else None,
+            items=[ItemResponse.from_orm(item) for item in obj.items]
+        )
+
 # --- USER SCHEMAS ---
 class UserCreate(BaseModel):
     email: str
     password: str
-    name: str  # <--- Теперь обязательно требуем имя при регистрации
+    name: str
 
 class UserResponse(BaseModel):
     id: int
     email: str
-    name: Optional[str] = "User" # <--- Возвращаем имя
+    name: Optional[str] = "User"
 
+    class Config:
+        from_attributes = True
+
+# --- OCCASION SCHEMAS ---
+class OccasionResponse(BaseModel):
+    id: int
+    name: str
+    default_style: Optional[str] = None
     class Config:
         from_attributes = True

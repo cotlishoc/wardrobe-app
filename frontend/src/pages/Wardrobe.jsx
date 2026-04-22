@@ -8,7 +8,6 @@ function Wardrobe() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   
-  // Состояние для списков из базы данных
   const [dbData, setDbData] = useState({ 
     categories: [], 
     colors: [], 
@@ -17,26 +16,22 @@ function Wardrobe() {
     fits: [] 
   });
 
-  // Состояния для поиска и открытия модалки
   const [searchText, setSearchText] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // --- СОСТОЯНИЯ ФИЛЬТРОВ (Все должны быть тут!) ---
   const [filterCategory, setFilterCategory] = useState('');
   const [filterColor, setFilterColor] = useState('');
   const [filterSeason, setFilterSeason] = useState('');
   const [filterStyle, setFilterStyle] = useState('');
-  const [filterFit, setFilterFit] = useState(''); // Наш новый фильтр
+  const [filterFit, setFilterFit] = useState('');
 
   useEffect(() => {
-    // 1. Загружаем вещи
     const fetchItems = () => {
       api.get('/items/')
         .then(res => setItems(Array.isArray(res.data) ? res.data : []))
         .catch(err => console.error("Ошибка загрузки вещей:", err));
     };
 
-    // 2. Загружаем справочники для фильтров
     const fetchFilters = async () => {
         try {
             const [c, cl, st, se, fi] = await Promise.all([
@@ -62,23 +57,23 @@ function Wardrobe() {
     fetchFilters();
   }, []);
 
-   // === ЛОГИКА ФИЛЬТРАЦИИ ===
    const filteredItems = items.filter(item => {
-    // Приводим всё к строкам и удаляем лишние пробелы для точного сравнения
     const itemCat = String(item.category || '').trim();
     const itemCol = String(item.color || '').trim();
     const itemFit = String(item.fit || '').trim();
+    const itemSeason = String(item.season || '').trim();
+    const itemStyle = String(item.style || '').trim();
 
     if (searchText && !item.name.toLowerCase().includes(searchText.toLowerCase())) return false;
     if (filterCategory && itemCat !== filterCategory.trim()) return false;
     if (filterColor && itemCol !== filterColor.trim()) return false;
     if (filterFit && itemFit !== filterFit.trim()) return false;
+    if (filterSeason && itemSeason !== filterSeason.trim()) return false;
+    if (filterStyle && itemStyle !== filterStyle.trim()) return false;
     
-    // Добавьте остальные фильтры по аналогии...
     return true;
 });
 
-   // Сброс всех фильтров
    const clearFilters = () => {
      setFilterCategory('');
      setFilterColor('');
@@ -93,17 +88,19 @@ function Wardrobe() {
    return (
      <div className="page-padding">
        
-       {/* Верхняя панель */}
-       <div className="top-bar">
-         <div className="search-container">
-           <svg className="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+       {/* ОБНОВЛЕННАЯ ВЕРХНЯЯ ПАНЕЛЬ (как в Капсулах) */}
+       <div className="top-bar" style={{ gap: '10px', marginBottom: '15px' }}>
+         <div className="search-container" style={{ flex: 1, position: 'relative' }}>
            <input 
              type="text" 
              className="search-input" 
              placeholder="Поиск по названию..." 
              value={searchText}
              onChange={(e) => setSearchText(e.target.value)}
+             style={{ paddingLeft: '40px' }} // Место под лупу
            />
+           {/* Иконка-эмодзи в том же стиле */}
+           <span style={{ position: 'absolute', left: '15px', top: '15px', opacity: 0.5 }}>🔍</span>
          </div>
          <Link to="/upload" className="add-btn-circle">+</Link>
        </div>
@@ -113,11 +110,12 @@ function Wardrobe() {
          className="filter-chip" 
          onClick={() => setIsFilterOpen(true)}
          style={{
-            backgroundColor: activeFiltersCount > 0 ? 'var(--primary-green)' : '#e0e0e0', 
-            color: activeFiltersCount > 0 ? '#fff' : '#000'
+            backgroundColor: activeFiltersCount > 0 ? 'var(--primary-green)' : '#f0f0f0', 
+            color: activeFiltersCount > 0 ? '#fff' : '#333',
+            marginBottom: '20px'
          }}
        >
-         Фильтры {activeFiltersCount > 0 ? `(${activeFiltersCount})` : ''} ▼
+         Параметры поиска {activeFiltersCount > 0 ? `(${activeFiltersCount})` : '▼'}
        </button>
 
        {/* Сетка вещей */}
@@ -135,7 +133,7 @@ function Wardrobe() {
            <div className="filter-modal" onClick={e => e.stopPropagation()}>
              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: '20px'}}>
                  <h3 style={{margin: 0}}>Параметры поиска</h3>
-                 <button onClick={() => setIsFilterOpen(false)} className="modal-close">&times;</button>
+                 <button onClick={() => setIsFilterOpen(false)} style={{border:'none', background:'none', fontSize:'28px'}}>&times;</button>
              </div>
              
              <div style={{display: 'flex', flexDirection: 'column', gap: '5px'}}>

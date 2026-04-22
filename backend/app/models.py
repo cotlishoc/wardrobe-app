@@ -84,3 +84,12 @@ class Capsule(Base):
     layout = Column(Text)
     owner = relationship("User", back_populates="capsules")
     items = relationship("Item", secondary=capsule_items, back_populates="capsules")
+    occasion_id = Column(Integer, ForeignKey("occasions.id"), nullable=True)
+    occasion_rel = relationship("Occasion")
+
+class Occasion(Base):
+    __tablename__ = "occasions"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False)
+    # Можно добавить поле для рекомендованного стиля, чтобы ИИ понимал связь
+    default_style = Column(String(100), nullable=True)
