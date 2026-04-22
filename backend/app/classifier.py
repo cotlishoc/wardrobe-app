@@ -166,95 +166,225 @@ class FashionClassifier:
 
         # 5. Словарь перевода (без изменений)
         self.translation_map = {
-            't-shirts-and-tank-tops': 'Футболки и майки',
-            'tops-tank-tops-and-t-shirts': 'Футболки и майки',
-            't-shirts-and-shirts': 'Футболки и майки',
-            't-shirts': 'Футболки и майки',
-            'shirts': 'Рубашки',
-            'blouses-and-shirts': 'Рубашки и блузки',
-            'sweaters': 'Свитеры',
-            'sweatshirts': 'Свитшоты и худи',
-            'hoodies-and-sweatshirts': 'Свитшоты и худи',
-            'jackets-and-coats': 'Куртки и пальто',
-            'coats': 'Куртки и пальто',
-            'parkas': 'Куртки и пальто',
-            'bombers': 'Бомберы',
-            'windbreakers': 'Ветровки',
-            'jackets-coats-and-vests': 'Куртки',
-            'vests': 'Жилеты',
-            'denim-jackets': 'Джинсовые куртки',
-            'leather-jackets': 'Кожаные куртки',
-            'quilted-jacket': 'Стеганые куртки',
-            'quilted-jackets': 'Стеганые куртки',
-            'sport-jackets': 'Спортивные куртки',
-            'pants': 'Брюки',
-            'trousers': 'Брюки',
-            'jeans': 'Джинсы',
-            'shorts': 'Шорты',
-            'short': 'Шорты',
-            'skirts': 'Юбки',
-            'leggings': 'Леггинсы',
+            # === ВЕРХНЯЯ ОДЕЖДА ===
+            'mens-t-shirts-and-tank-tops': 'Футболки и майки',
+            'womens-tops-tank-tops-and-t-shirts': 'Футболки и майки',
+            'girls-t-shirts-and-shirts': 'Футболки и майки',
+            'boys-t-shirts': 'Футболки и майки',
+            
+            'mens-shirts': 'Рубашки',
+            'womens-blouses-and-shirts': 'Рубашки и блузки',
+            
+            'mens-sweaters': 'Свитеры',
+            'womens-sweaters': 'Свитеры',
+            'girls-sweaters': 'Свитеры',
+            'mens-sweatshirts': 'Свитшоты и худи',
+            'womens-sweatshirts': 'Свитшоты и худи',
+            'boys-sweatshirts': 'Свитшоты и худи',
+            'girls-sweatshirts': 'Свитшоты и худи',
+            'mens-hoodies-and-sweatshirts': 'Свитшоты и худи',
+            
+            'mens-jackets-and-coats': 'Куртки и пальто',
+            'womens-coats': 'Куртки и пальто',
+            'mens-coats': 'Куртки и пальто',
+            'mens-parkas': 'Куртки и пальто',
+            'womens-parkas': 'Куртки и пальто',
+            'mens-bombers': 'Бомберы',
+            'womens-bombers': 'Бомберы',
+            'mens-windbreakers': 'Ветровки',
+            'womens-windbreakers': 'Ветровки',
+            'boys-jackets-coats-and-vests': 'Детские куртки',
+            'girls-jackets-coats-and-vests': 'Детские куртки',
+            
+            'mens-vests': 'Жилеты',
+            'womens-vests': 'Жилеты',
+            
+            'mens-denim-jackets': 'Джинсовые куртки',
+            'womens-denim-jackets': 'Джинсовые куртки',
+            'mens-leather-jackets': 'Кожаные куртки',
+            'womens-leather-jackets': 'Кожаные куртки',
+            'mens-quilted-jacket': 'Стеганые куртки',
+            'womens-quilted-jackets': 'Стеганые куртки',
+            'mens-sport-jackets': 'Спортивные куртки',
+            'womens-sport-jackets': 'Спортивные куртки',
+            
+            # === НИЖНЯЯ ОДЕЖДА ===
+            'mens-pants': 'Брюки',
+            'womens-pants': 'Брюки',
+            'boys-pants': 'Брюки',
+            'girls-pants': 'Брюки',
+            'mens-trousers': 'Брюки',
+            
+            'mens-jeans': 'Джинсы',
+            'womens-jeans': 'Джинсы',
+            
+            'mens-shorts': 'Шорты',
+            'womens-shorts': 'Шорты',
+            'women-s-shorts': 'Шорты',
+            'boys-shorts': 'Шорты',
+            'girls-shorts': 'Шорты',
+            
+            'womens-skirts': 'Юбки',
+            
+            'womens-leggings': 'Леггинсы',
+            
+            # === ПЛАТЬЯ И КОМБИНЕЗОНЫ ===
             'dresses': 'Платья',
-            'jumpsuits': 'Комбинезоны',
-            'jump-suits': 'Комбинезоны',
-            'co-ord-sets': 'Костюмы',
-            'swimsuits': 'Купальники',
-            'swimwear': 'Купальники',
+            'womens-dresses': 'Платья',
+            'women-s-dresses': 'Платья',
+            'girls-dresses': 'Платья',
+            
+            'womens-jumpsuits': 'Комбинезоны',
+            'girls-jump-suits': 'Комбинезоны',
+            'women-co-ord-sets': 'Координированные костюмы',
+            
+            'one-piece-swimsuits': 'Купальники',
             'bikinis': 'Купальники',
-            'sneakers': 'Кроссовки',
-            'football-shoes': 'Спортивная обувь',
-            'outdoor-shoes': 'Спортивная обувь',
-            'boots': 'Ботинки',
-            'booties': 'Ботинки',
-            'snow-boots': 'Зимние ботинки',
-            'sandals': 'Сандалии',
-            'flip-flops': 'Шлепанцы',
-            'slides': 'Слайды',
-            'slippers': 'Тапочки',
-            'loafers-and-moccasins': 'Лоферы и мокасины',
-            'dress-shoes': 'Классическая обувь',
-            'espadrilles': 'Эспадрильи',
-            'flats': 'Балетки',
+            
+            # === ОБУВЬ ===
+            'mens-sneakers': 'Кроссовки',
+            'womens-sneakers': 'Кроссовки',
+            'mens-football-shoes': 'Спортивная обувь',
+            'mens-outdoor-shoes': 'Спортивная обувь',
+            'womens-outdoor-shoes': 'Спортивная обувь',
+            
+            'mens-boots': 'Ботинки',
+            'womens-boots-and-booties': 'Ботинки',
+            'womens-snow-boots': 'Зимние ботинки',
+            'mens-snow-boots': 'Зимние ботинки',
+            
+            'mens-sandals': 'Сандалии',
+            'womens-sandals': 'Сандалии',
+            'mens-flip-flops': 'Шлепанцы',
+            'womens-flip-flops': 'Шлепанцы',
+            'mens-slides': 'Слайды',
+            'womens-slides': 'Слайды',
+            'mens-slippers': 'Домашние тапочки',
+            'womens-slippers': 'Домашние тапочки',
+            
+            'mens-loafers-and-moccasins': 'Лоферы и мокасины',
+            'womens-loafers-and-moccasins': 'Лоферы и мокасины',
+            'men-dress-shoes': 'Классическая обувь',
+            'women-dress-shoes': 'Классическая обувь',
+            'womens-espadrilles': 'Эспадрильи',
+            'womens-flats': 'Балетки',
+            'womens-heels': 'Туфли на каблуке',
             'heels': 'Туфли на каблуке',
-            'mule': 'Мюли',
-            'bras': 'Бюстгальтеры',
+            'womens-mule': 'Мюли',
+            
+            'baby-shoes': 'Детская обувь',
+            'girls-shoes': 'Детская обувь',
+            'boys-shoes': 'Детская обувь',
+            
+            # === НИЖНЕЕ БЕЛЬЕ ===
+            'womens-bras': 'Бюстгальтеры',
             'panties-and-thongs': 'Трусы',
-            'underwear': 'Белье',
-            'sleepwear': 'Пижамы',
-            'pajamas': 'Пижамы',
-            'nightgowns': 'Ночные рубашки',
-            'bathrobes': 'Халаты',
+            'underwear-sets': 'Бельевые наборы',
+            'mens-undergarments': 'Мужское нижнее белье',
+            'womens-lingerie': 'Белье',
+            'womens-hosiery': 'Чулочно-носочные изделия',
+            'girls-undergarments': 'Детское белье',
+            
+            'mens-sleepwear': 'Пижамы',
+            'womens-pajamas': 'Пижамы',
+            'women-s-nightgowns': 'Ночные рубашки',
+            'girls-sleepwear': 'Детские пижамы',
+            'womens-bathrobes': 'Халаты',
+            
+            # === АКСЕССУАРЫ ===
             'handbags': 'Сумки',
-            'bags': 'Сумки',
-            'backpacks': 'Рюкзаки',
-            'fanny-packs': 'Поясные сумки',
-            'wallets': 'Кошельки',
-            'suitcase': 'Чемоданы',
-            'belts': 'Ремни',
-            'hats': 'Головные уборы',
-            'headwear': 'Головные уборы',
-            'scarves': 'Шарфы',
-            'sunglasses': 'Очки',
-            'eyeglasses': 'Очки',
-            'ties': 'Галстуки',
-            'watches': 'Часы',
-            'earrings': 'Серьги',
-            'necklaces': 'Украшения',
-            'pendants': 'Украшения',
-            'bracelets': 'Украшения',
-            'rings': 'Украшения',
-            'chains': 'Украшения',
-            'jewelry': 'Украшения',
-            'tracksuits': 'Спортивные костюмы',
-            'overalls': 'Комбинезоны',
-            'suiting': 'Костюмы',
-            'suit': 'Костюмы',
+            'mens-bags': 'Сумки',
+            'womens-backpacks': 'Рюкзаки',
+            'mens-backpacks': 'Рюкзаки',
+            'shoulder-bags': 'Сумки через плечо',
+            'womens-fanny-packs': 'Поясные сумки',
+            'womens-wallets': 'Кошельки',
+            'mens-wallets': 'Кошельки',
+            'womens-suitcase': 'Чемоданы',
+            'mens-suitcases-and-travel-bags': 'Чемоданы',
+            
+            'womens-belts': 'Ремни',
+            'mens-belts': 'Ремни',
+            
+            'womens-hats': 'Шляпы',
+            'mens-headwear': 'Головные уборы',
+            'womens-headwear': 'Головные уборы',
+            
+            'womens-scarves': 'Шарфы',
+            'womens-shawls-and-scarves': 'Шарфы и палантины',
+            
+            'womens-sunglasses': 'Солнцезащитные очки',
+            'mens-sunglasses': 'Солнцезащитные очки',
+            'mens-eyeglasses': 'Очки',
+            'womens-eyeglasses': 'Очки',
+            
+            'mens-ties': 'Галстуки',
+            'mens-bow-ties': 'Бабочки',
+            
+            'womens-watches': 'Часы',
+            'mens-watches': 'Часы',
+            
+            'womens-earrings': 'Серьги',
+            'womens-necklaces': 'Ожерелья',
+            'womens-pendants': 'Подвески',
+            'womens-bracelets': 'Браслеты',
+            'womens-rings': 'Кольца',
+            'womens-chains': 'Цепочки',
+            'womens-jewelry-sets': 'Ювелирные наборы',
+            
+            'womens-hair-accessories': 'Аксессуары для волос',
+            
+            # === СПОРТ ===
+            'mens-swimwear': 'Плавки',
+            'womens-swimwear': 'Купальники',
+            'mens-tracksuits': 'Спортивные костюмы',
+            'womens-tracksuits': 'Спортивные костюмы',
+            'sport-and-outdoor': 'Спорт и активный отдых',
+            
+            # === ДОМ И ДЕКОР ===
+            'bedroom': 'Спальня',
+            'bed-linen': 'Постельное белье',
+            'bathroom': 'Ванная комната',
+            'kitchen': 'Кухня',
+            'living-room': 'Гостиная',
+            'office': 'Офис',
+            'kids-room': 'Детская комната',
+            'lighting': 'Освещение',
+            'decor': 'Декор',
+            
+            # === ДЕТСКОЕ ===
+            'baby-clothing': 'Детская одежда',
+            'baby-accessories': 'Детские аксессуары',
+            'girls-accessories': 'Детские аксессуары',
+            'boys-accessories': 'Детские аксессуары',
+            'girls-overalls': 'Детские комбинезоны',
+            'boys-overalls': 'Детские комбинезоны',
+            
+            # === ОСТАЛЬНОЕ ===
+            'unisex': 'Унисекс',
+            'islamic-clothing': 'Исламская одежда',
+            'mens-suiting': 'Костюмы',
+            'men-s-suit': 'Костюмы',
+            'womens-suit-jackets-and-blazers': 'Пиджаки и жакеты',
+            'mens-vests': 'Жилеты',
+            
+            'womens-kaftans-and-sarongs': 'Кафтаны и саронги',
+            'women-face-masks': 'Маски для лица',
+            'womens-cosmetics': 'Косметика',
+            'women-s-cosmetics': 'Косметика',
+            
+            'mens-boots': 'Ботинки',
+            'womens-boots-and-booties': 'Ботинки',
         }
 
     def clean_and_translate(self, raw_label):
-        clean = re.sub(r'^(mens|womens|girls|boys|baby|women-s|men-s|men|women)-', '', raw_label.lower())
+        raw_label_lower = raw_label.lower().strip()
+        if raw_label_lower in self.translation_map:
+            return self.translation_map[raw_label_lower]
         for key, value in self.translation_map.items():
-            if key in clean: return value
+            if key in raw_label_lower:
+                return value
+        clean = re.sub(r'^(mens|womens|girls|boys|baby|women-s|men-s|men|women)-', '', raw_label_lower)
         return clean.replace('-', ' ').capitalize()
 
     def predict(self, image_path: str):
