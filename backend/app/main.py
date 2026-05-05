@@ -129,12 +129,18 @@ app.add_middleware(
 
 
 # --- НАСТРОЙКА ПАПОК ---
-# Локально BASE_UPLOAD_DIR будет "static"
-BASE_UPLOAD_DIR = "static"
+if os.path.exists("/data"):
+    BASE_UPLOAD_DIR = "/data/static"
+    print("LOG: Cloud storage mode active")
+else:
+    BASE_UPLOAD_DIR = "static"
+    print("LOG: Local storage mode active")
 UPLOAD_DIR = os.path.join(BASE_UPLOAD_DIR, "uploads")
 TEMP_DIR = os.path.join(BASE_UPLOAD_DIR, "temp")
+# Создаем папки, если их нет
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(TEMP_DIR, exist_ok=True)
+# Монтируем статику (чтобы картинки открывались по ссылкам)
 app.mount("/static", StaticFiles(directory=BASE_UPLOAD_DIR), name="static")
 
 # --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
