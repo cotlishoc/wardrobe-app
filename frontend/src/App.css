@@ -40,16 +40,18 @@ body {
 
 /* === 2. КОНТЕЙНЕР ПРИЛОЖЕНИЯ === */
 .app-container {
-  padding-top: env(safe-area-inset-top, 0px); 
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* env(safe-area-inset-top) - это системный отступ Android/iOS */
+  padding-top: env(safe-area-inset-top, 20px); 
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  height: 100%;      /* Берет высоту от #root */
-  height: 100vh;
-  height: 100dvh;    /* Для мобильных */
-  width: 100%;
   background-color: var(--bg-app);
-  overflow: hidden;
+}
+
+/* Специальный класс для верхних панелей в конструкторе */
+.mobile-top-bar {
+  padding-top: env(safe-area-inset-top, 25px) !important;
+  margin-top: 10px; /* Дополнительный визуальный отступ */
 }
 
 /* === 3. ОБЛАСТЬ КОНТЕНТА === */

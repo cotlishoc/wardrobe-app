@@ -92,3 +92,9 @@ class OccasionResponse(BaseModel):
     default_style: Optional[str] = None
     class Config:
         from_attributes = True
+        
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    current_password: str # Обязательно для подтверждения личности
+    new_password: Optional[str] = None

@@ -532,3 +532,30 @@ async def update_capsule(
     db.commit()
     db.refresh(db_capsule)
     return db_capsule
+
+@app.put("/users/me")
+def update_user(
+    data: schemas.UserUpdate, 
+    db: Session = Depends(database.get_db), 
+    current_user: models.User = Depends(get_current_user)
+):
+    # 1. Проверяем старый пароль через нашу функцию в crud
+    if not crud.verify_password(data.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Неверный текущий пароль")
+    
+    # 2. Проверяем, не занят ли новый email (если пользователь его меняет)
+    if data.email and data.email != current_user.email:
+        existing_user = crud.get_user_by_email(db, email=data.email)
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Этот email уже занят")
+        current_user.email = data.email
+    
+    # 3. Обновляем остальные поля
+    if data.name: 
+        current_user.name = data.name
+    if data.new_password:
+        current_user.password_hash = crud.get_password_hash(data.new_password)
+    
+    db.commit()
+    db.refresh(current_user)
+    return {"ok": True, "name": current_user.name, "email": current_user.email}

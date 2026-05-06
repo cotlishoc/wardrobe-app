@@ -7,6 +7,7 @@ function Auth({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // Состояние для видимости пароля
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -75,7 +76,7 @@ function Auth({ onLogin }) {
           style={{
             flex: 1, border: 'none', padding: '12px', borderRadius: '12px', fontSize: '14px', fontWeight: 'bold',
             background: !isRegister ? 'var(--primary-green)' : 'transparent',
-            color: !isRegister ? '#white' : 'var(--primary-green)',
+            color: !isRegister ? 'white' : 'var(--primary-green)', // Исправлено здесь
             transition: '0.3s'
           }}
         >
@@ -117,17 +118,44 @@ function Auth({ onLogin }) {
 
         <div className="input-group">
           <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--primary-green)', marginLeft: '10px' }}>ПАРОЛЬ</label>
-          <input 
-            type="password" placeholder="••••••••" className="custom-input"
-            value={password} onChange={e => setPassword(e.target.value)} required
-          />
+          <div style={{ position: 'relative' }}>
+            <input 
+              type={showPassword ? "text" : "password"} // Переключение типа поля
+              placeholder="••••••••" 
+              className="custom-input"
+              value={password} 
+              onChange={e => setPassword(e.target.value)} 
+              required
+              style={{ paddingRight: '50px' }} // Отступ для иконки
+            />
+            <button 
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: 'absolute',
+                right: '15px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '18px',
+                color: 'var(--primary-green)',
+                opacity: 0.7,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              {showPassword ? '👁️' : '🙈'} 
+            </button>
+          </div>
         </div>
 
         <button type="submit" className="auth-btn btn-primary" style={{ marginTop: '20px', fontSize: '16px' }}>
           {isRegister ? 'Зарегистрироваться' : 'Войти в аккаунт'}
         </button>
       </form>
-
     </div>
   );
 }
