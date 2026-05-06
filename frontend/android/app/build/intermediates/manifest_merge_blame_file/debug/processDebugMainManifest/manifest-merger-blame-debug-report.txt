@@ -1,0 +1,279 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.cotlishoc.wardrobe"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="36" />
+10
+11    <uses-permission android:name="android.permission.INTERNET" />
+11-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:3:5-67
+11-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:3:22-64
+12    <uses-permission android:name="android.permission.CAMERA" />
+12-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:4:5-65
+12-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:4:22-62
+13    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+13-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:6:5-76
+13-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:6:22-73
+14    <uses-permission
+14-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:8:5-10:38
+15        android:name="android.permission.READ_EXTERNAL_STORAGE"
+15-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:9:9-64
+16        android:maxSdkVersion="32" />
+16-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:10:9-35
+17
+18    <uses-feature
+18-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:12:5-85
+19        android:name="android.hardware.camera"
+19-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:12:19-57
+20        android:required="false" />
+20-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:12:58-82
+21
+22    <!-- Permissions -->
+23
+24    <uses-permission android:name="android.permission.INTERNET" />
+24-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:3:5-67
+24-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:3:22-64
+25
+26    <queries>
+26-->[:capacitor-camera] D:\cotlishic\project\wardrobe-app\frontend\node_modules\@capacitor\camera\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:7:5-17:15
+27        <intent>
+27-->[:capacitor-camera] D:\cotlishic\project\wardrobe-app\frontend\node_modules\@capacitor\camera\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:8:9-10:18
+28            <action android:name="android.media.action.IMAGE_CAPTURE" />
+28-->[:capacitor-camera] D:\cotlishic\project\wardrobe-app\frontend\node_modules\@capacitor\camera\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:9:13-73
+28-->[:capacitor-camera] D:\cotlishic\project\wardrobe-app\frontend\node_modules\@capacitor\camera\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:9:21-70
+29        </intent>
+30        <intent>
+30-->[:capacitor-camera] D:\cotlishic\project\wardrobe-app\frontend\node_modules\@capacitor\camera\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:11:9-13:18
+31            <action android:name="android.intent.action.GET_CONTENT" />
+31-->[:capacitor-camera] D:\cotlishic\project\wardrobe-app\frontend\node_modules\@capacitor\camera\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:12:13-72
+31-->[:capacitor-camera] D:\cotlishic\project\wardrobe-app\frontend\node_modules\@capacitor\camera\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:12:21-69
+32        </intent>
+33        <intent>
+33-->[:capacitor-camera] D:\cotlishic\project\wardrobe-app\frontend\node_modules\@capacitor\camera\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:14:9-16:18
+34            <action android:name="android.intent.action.PICK" />
+34-->[:capacitor-camera] D:\cotlishic\project\wardrobe-app\frontend\node_modules\@capacitor\camera\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:15:13-65
+34-->[:capacitor-camera] D:\cotlishic\project\wardrobe-app\frontend\node_modules\@capacitor\camera\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:15:21-62
+35        </intent>
+36    </queries>
+37
+38    <permission
+38-->[androidx.core:core:1.17.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:22:5-24:47
+39        android:name="com.cotlishoc.wardrobe.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+39-->[androidx.core:core:1.17.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:23:9-81
+40        android:protectionLevel="signature" />
+40-->[androidx.core:core:1.17.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:24:9-44
+41
+42    <uses-permission android:name="com.cotlishoc.wardrobe.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+42-->[androidx.core:core:1.17.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:26:5-97
+42-->[androidx.core:core:1.17.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:26:22-94
+43
+44    <application
+44-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:14:5-48:19
+45        android:allowBackup="true"
+45-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:15:9-35
+46        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+46-->[androidx.core:core:1.17.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\11094a199bb7945826b161d8a9c17beb\transformed\core-1.17.0\AndroidManifest.xml:28:18-86
+47        android:debuggable="true"
+48        android:extractNativeLibs="false"
+49        android:icon="@mipmap/ic_launcher"
+49-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:16:9-43
+50        android:label="@string/app_name"
+50-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:17:9-41
+51        android:requestLegacyExternalStorage="true"
+51-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:8:18-61
+52        android:roundIcon="@mipmap/ic_launcher_round"
+52-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:18:9-54
+53        android:supportsRtl="true"
+53-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:19:9-35
+54        android:theme="@style/AppTheme" >
+54-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:20:9-40
+55        <activity
+55-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:23:9-37:20
+56            android:name="com.cotlishoc.wardrobe.MainActivity"
+56-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:25:13-41
+57            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+57-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:24:13-148
+58            android:exported="true"
+58-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:29:13-36
+59            android:label="@string/title_activity_main"
+59-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:26:13-56
+60            android:launchMode="singleTask"
+60-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:28:13-44
+61            android:theme="@style/AppTheme.NoActionBarLaunch"
+61-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:27:13-62
+62            android:usesCleartextTraffic="true" >
+62-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:30:13-48
+63            <intent-filter>
+63-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:32:13-35:29
+64                <action android:name="android.intent.action.MAIN" />
+64-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:33:17-69
+64-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:33:25-66
+65
+66                <category android:name="android.intent.category.LAUNCHER" />
+66-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:34:17-77
+66-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:34:27-74
+67            </intent-filter>
+68        </activity>
+69
+70        <provider
+71            android:name="androidx.core.content.FileProvider"
+71-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:40:13-62
+72            android:authorities="com.cotlishoc.wardrobe.fileprovider"
+72-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:41:13-64
+73            android:exported="false"
+73-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:42:13-37
+74            android:grantUriPermissions="true" >
+74-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:43:13-47
+75            <meta-data
+75-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:44:13-46:64
+76                android:name="android.support.FILE_PROVIDER_PATHS"
+76-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:45:17-67
+77                android:resource="@xml/file_paths" />
+77-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:46:17-51
+78        </provider>
+79
+80        <activity
+80-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:9:9-11:86
+81            android:name="io.ionic.libs.ioncameralib.view.IONCAMRLoadingActivity"
+81-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:10:13-82
+82            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
+82-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:11:13-83
+83        <activity
+83-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:12:9-16:36
+84            android:name="io.ionic.libs.ioncameralib.view.IONCAMRImageEditorActivity"
+84-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:13:13-86
+85            android:enableOnBackInvokedCallback="true"
+85-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:14:13-55
+86            android:theme="@android:style/Theme.Black.NoTitleBar" />
+86-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:15:13-66
+87        <activity
+87-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:17:9-20:86
+88            android:name="io.ionic.libs.ioncameralib.view.IONCAMROpenPhotoPickerActivity"
+88-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:18:13-90
+89            android:exported="false"
+89-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:19:13-37
+90            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" /> <!-- Trigger Google Play services to install the backported photo picker module. -->
+90-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:20:13-83
+91        <service
+91-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:22:9-34:19
+92            android:name="com.google.android.gms.metadata.ModuleDependencies"
+92-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:23:13-78
+93            android:enabled="false"
+93-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:24:13-36
+94            android:exported="false" >
+94-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:25:13-37
+95            <intent-filter>
+95-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:27:13-29:29
+96                <action android:name="com.google.android.gms.metadata.MODULE_DEPENDENCIES" />
+96-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:28:17-94
+96-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:28:25-91
+97            </intent-filter>
+98
+99            <meta-data
+99-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:31:13-33:36
+100                android:name="photopicker_activity:0:required"
+100-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:32:17-63
+101                android:value="" />
+101-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:33:17-33
+102        </service>
+103
+104        <provider
+104-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:36:9-44:20
+105            android:name="io.ionic.libs.ioncameralib.IONCAMRFileProvider"
+105-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:37:13-74
+106            android:authorities="com.cotlishoc.wardrobe.camera.provider"
+106-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:38:13-67
+107            android:exported="false"
+107-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:39:13-37
+108            android:grantUriPermissions="true" >
+108-->[io.ionic.libs:ioncamera-android:1.0.1] C:\Users\sania\.gradle\caches\8.14.3\transforms\a295b38db932f479cec579b2dc812c1a\transformed\ioncamera-android-1.0.1\AndroidManifest.xml:40:13-47
+109            <meta-data
+109-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:44:13-46:64
+110                android:name="android.support.FILE_PROVIDER_PATHS"
+110-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:45:17-67
+111                android:resource="@xml/ioncamera_paths" />
+111-->D:\cotlishic\project\wardrobe-app\frontend\android\app\src\main\AndroidManifest.xml:46:17-51
+112        </provider>
+113        <provider
+113-->[androidx.emoji2:emoji2:1.3.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+114            android:name="androidx.startup.InitializationProvider"
+114-->[androidx.emoji2:emoji2:1.3.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+115            android:authorities="com.cotlishoc.wardrobe.androidx-startup"
+115-->[androidx.emoji2:emoji2:1.3.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+116            android:exported="false" >
+116-->[androidx.emoji2:emoji2:1.3.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+117            <meta-data
+117-->[androidx.emoji2:emoji2:1.3.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+118                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+118-->[androidx.emoji2:emoji2:1.3.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+119                android:value="androidx.startup" />
+119-->[androidx.emoji2:emoji2:1.3.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\353d69426d62513a7e19e841051a3a44\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+120            <meta-data
+120-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\sania\.gradle\caches\8.14.3\transforms\14a3b51da1167f75215e7e32d2231e74\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:29:13-31:52
+121                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+121-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\sania\.gradle\caches\8.14.3\transforms\14a3b51da1167f75215e7e32d2231e74\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:30:17-78
+122                android:value="androidx.startup" />
+122-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\sania\.gradle\caches\8.14.3\transforms\14a3b51da1167f75215e7e32d2231e74\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:31:17-49
+123            <meta-data
+123-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:29:13-31:52
+124                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+124-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:30:17-85
+125                android:value="androidx.startup" />
+125-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:31:17-49
+126        </provider>
+127        <!--
+128        Service for holding metadata. Cannot be instantiated.
+129        Metadata will be merged from other manifests.
+130        -->
+131        <service
+131-->[androidx.camera:camera-core:1.4.2] C:\Users\sania\.gradle\caches\8.14.3\transforms\1bed5d73aa0783bafdf646ee8d6db11d\transformed\camera-core-1.4.2\AndroidManifest.xml:29:9-33:78
+132            android:name="androidx.camera.core.impl.MetadataHolderService"
+132-->[androidx.camera:camera-core:1.4.2] C:\Users\sania\.gradle\caches\8.14.3\transforms\1bed5d73aa0783bafdf646ee8d6db11d\transformed\camera-core-1.4.2\AndroidManifest.xml:30:13-75
+133            android:enabled="false"
+133-->[androidx.camera:camera-core:1.4.2] C:\Users\sania\.gradle\caches\8.14.3\transforms\1bed5d73aa0783bafdf646ee8d6db11d\transformed\camera-core-1.4.2\AndroidManifest.xml:31:13-36
+134            android:exported="false" />
+134-->[androidx.camera:camera-core:1.4.2] C:\Users\sania\.gradle\caches\8.14.3\transforms\1bed5d73aa0783bafdf646ee8d6db11d\transformed\camera-core-1.4.2\AndroidManifest.xml:32:13-37
+135
+136        <receiver
+136-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:34:9-52:20
+137            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+137-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:35:13-76
+138            android:directBootAware="false"
+138-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:36:13-44
+139            android:enabled="true"
+139-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:37:13-35
+140            android:exported="true"
+140-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:38:13-36
+141            android:permission="android.permission.DUMP" >
+141-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:39:13-57
+142            <intent-filter>
+142-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:40:13-42:29
+143                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+143-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:41:17-91
+143-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:41:25-88
+144            </intent-filter>
+145            <intent-filter>
+145-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:43:13-45:29
+146                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+146-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:44:17-85
+146-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:44:25-82
+147            </intent-filter>
+148            <intent-filter>
+148-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:46:13-48:29
+149                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+149-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:47:17-88
+149-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:47:25-85
+150            </intent-filter>
+151            <intent-filter>
+151-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:49:13-51:29
+152                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+152-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:50:17-95
+152-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\sania\.gradle\caches\8.14.3\transforms\f95ab50c54d3211c648684c462933e30\transformed\profileinstaller-1.4.0\AndroidManifest.xml:50:25-92
+153            </intent-filter>
+154        </receiver>
+155    </application>
+156
+157</manifest>
