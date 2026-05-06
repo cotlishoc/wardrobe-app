@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 function Account({ onLogout }) {
   // ЧИТАЕМ ИЗ ПАМЯТИ
@@ -9,60 +9,64 @@ function Account({ onLogout }) {
   const avatarLetter = userName ? userName[0].toUpperCase() : 'U';
 
   return (
-    <div style={{ 
+    <div className="page-padding" style={{ 
         height: '100%', 
-        minHeight: '100%',
         display: 'flex', 
         flexDirection: 'column',
-        justifyContent: 'space-between'
+        backgroundColor: '#f8f9fa' // Легкий фон для контраста
     }}>
       
-      {/* ВЕРХНЯЯ ЧАСТЬ */}
+      {/* ДЕКОРАТИВНАЯ ШАПКА ПРОФИЛЯ */}
       <div style={{ 
           display: 'flex', 
           flexDirection: 'column', 
           alignItems: 'center', 
-          marginTop: '60px', 
-          flex: 1
+          padding: '40px 20px',
+          background: 'linear-gradient(180deg, var(--light-green) 0%, #f8f9fa 100%)',
+          borderRadius: '0 0 30px 30px',
+          marginBottom: '20px'
       }}>
         <div style={{ 
-            width: '120px', 
-            height: '120px', 
+            width: '100px', 
+            height: '100px', 
             borderRadius: '50%', 
-            backgroundColor: '#fff',
+            backgroundColor: 'var(--primary-green)',
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center',
-            fontSize: '50px',
-            color: 'var(--primary-green)',
-            marginBottom: '20px',
-            border: '2px solid var(--primary-green)',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.05)'
+            fontSize: '40px',
+            fontWeight: 'bold',
+            color: 'white',
+            marginBottom: '15px',
+            boxShadow: '0 8px 20px rgba(52, 94, 55, 0.2)',
+            border: '4px solid white'
         }}>
           {avatarLetter}
         </div>
         
-        {/* ВЫВОДИМ ИМЯ */}
-        <h2 style={{ margin: 0, color: 'var(--primary-green)' }}>{userName}</h2>
-        
-        {/* ВЫВОДИМ ПОЧТУ */}
-        <p style={{ color: '#999', marginTop: '5px' }}>{userEmail}</p>
+        <h2 style={{ margin: 0, color: 'var(--primary-green)', fontSize: '24px' }}>{userName}</h2>
+        <p style={{ color: '#888', marginTop: '5px', fontSize: '14px' }}>{userEmail}</p>
       </div>
 
-      {/* НИЖНЯЯ ЧАСТЬ */}
-      <div style={{ marginBottom: '20px', width: '100%' }}>
+
+      {/* НИЖНЯЯ ЧАСТЬ С КНОПКОЙ */}
+      {/* Добавляем padding-bottom: 120px чтобы кнопка гарантированно была выше BottomNav */}
+      <div style={{ padding: '20px', paddingBottom: '120px' }}>
         <button 
           onClick={onLogout} 
           className="auth-btn"
           style={{ 
-            background: 'white', 
+            background: '#fff0f0', 
             color: '#ff4d4d', 
-            border: '1px solid #ff4d4d',
-            fontWeight: '600'
+            border: '2px solid #ff4d4d',
+            fontWeight: 'bold',
+            borderRadius: '16px',
+            boxShadow: '0 4px 12px rgba(255, 77, 77, 0.1)'
           }}
         >
-          Выйти из аккаунта
+          <span style={{ marginRight: '10px' }}>🚪</span> Выйти из системы
         </button>
+
       </div>
 
     </div>

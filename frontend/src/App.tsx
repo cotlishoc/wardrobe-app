@@ -9,6 +9,7 @@ import Auth from './pages/Auth';
 import BottomNav from './components/BottomNav';
 import EditItem from './pages/EditItem';
 import './App.css';
+import Preview from './pages/Preview';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -48,6 +49,8 @@ function App() {
                 <Route path="/capsules" element={<AllCapsules />} />
                 <Route path="/capsules/create" element={<Capsules />} />
                 <Route path="/capsules/:id" element={<Capsules />} />
+                <Route path="/" element={<Navigate to="/preview" />} />
+                <Route path="/preview" element={<Preview />} />
                 <Route path="/account" element={<Account onLogout={handleLogout} />} />
                 <Route path="*" element={<Navigate to="/wardrobe" />} />
               </>
