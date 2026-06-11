@@ -2,15 +2,29 @@ import { useEffect, useState } from 'react';
 import api from '../api';
 import { API_URL } from '../config';
 import { Link, useNavigate } from 'react-router-dom';
+import SmartSelect from '../components/SmartSelect';
 
 function AllCapsules() {
   const navigate = useNavigate();
   const [capsules, setCapsules] = useState([]);
+  const [occasionOptions, setOccasionOptions] = useState([]);
+  const [searchText, setSearchText] = useState('');
+  const [filterOccasion, setFilterOccasion] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  const getUniqueOccasions = (items) => {
+    const unique = Array.from(new Set((items || []).map(item => String(item.occasion || '').trim()).filter(Boolean)));
+    return unique.sort();
+  };
 
   const fetchCaps = () => {
     api.get('/capsules/')
-      .then(res => setCapsules(res.data))
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : [];
+        setCapsules(data);
+        setOccasionOptions(getUniqueOccasions(data));
+      })
       .catch(err => console.error(err))
       .finally(() => setIsLoading(false));
   };
@@ -20,29 +34,64 @@ function AllCapsules() {
   }, []);
 
   const deleteCapsule = async (e, id) => {
-    e.stopPropagation(); 
-    if (window.confirm("Удалить этот образ навсегда?")) {
-        try {
-            await api.delete(`/capsules/${id}`);
-            setCapsules(capsules.filter(c => c.id !== id));
-        } catch (e) {
-            alert("Ошибка при удалении");
-        }
+    e.stopPropagation();
+    if (window.confirm('Удалить этот образ навсегда?')) {
+      try {
+        await api.delete(`/capsules/${id}`);
+        const updated = capsules.filter(c => c.id !== id);
+        setCapsules(updated);
+        setOccasionOptions(getUniqueOccasions(updated));
+      } catch (e) {
+        alert('Ошибка при удалении');
+      }
     }
+  };
+
+  const filteredCapsules = capsules.filter(capsule => {
+    const nameMatch = !searchText || String(capsule.name || '').toLowerCase().includes(searchText.toLowerCase());
+    const occasionMatch = !filterOccasion || String(capsule.occasion || '').trim() === filterOccasion.trim();
+    return nameMatch && occasionMatch;
+  });
+
+  const clearFilters = () => {
+    setFilterOccasion('');
+    setIsFilterOpen(false);
   };
 
   return (
     <div className="page-padding" style={{ paddingBottom: '100px' }}>
-      <div className="top-bar" style={{ justifyContent: 'space-between' }}>
-        <h2>Мои Капсулы</h2>
+      <div className="top-bar" style={{ gap: '10px', marginBottom: '15px' }}>
+        <div className="search-container" style={{ flex: 1, position: 'relative' }}>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Поиск по названию..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ paddingLeft: '40px' }}
+          />
+          <span style={{ position: 'absolute', left: '15px', top: '15px', opacity: 0.5 }}>🔍</span>
+        </div>
         <Link to="/capsules/create" className="add-btn-circle">+</Link>
       </div>
+
+      <button
+        className="filter-chip"
+        onClick={() => setIsFilterOpen(true)}
+        style={{
+          backgroundColor: filterOccasion ? 'var(--primary-green)' : '#f0f0f0',
+          color: filterOccasion ? '#fff' : '#333',
+          marginBottom: '20px',
+        }}
+      >
+        Фильтр события {filterOccasion ? `(${filterOccasion})` : '▼'}
+      </button>
 
       {isLoading ? (
         <p style={{ textAlign: 'center', color: '#888' }}>Загрузка...</p>
       ) : (
         <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-          {capsules.map((capsule) => (
+          {filteredCapsules.map((capsule) => (
             <div 
                 key={capsule.id} 
                 className="card" 
@@ -103,11 +152,31 @@ function AllCapsules() {
             </div>
           ))}
 
-          {capsules.length === 0 && (
+          {filteredCapsules.length === 0 && (
             <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: '40px', color: '#aaa' }}>
-                <p>У вас пока нет сохраненных образов</p>
+              <p>{capsules.length === 0 ? 'У вас пока нет сохраненных образов' : 'По вашему запросу ничего не найдено'}</p>
             </div>
           )}
+        </div>
+      )}
+
+      {isFilterOpen && (
+        <div className="filter-modal-overlay" onClick={() => setIsFilterOpen(false)}>
+          <div className="filter-modal" onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0 }}>Фильтр по событию</h3>
+              <button onClick={() => setIsFilterOpen(false)} style={{ border: 'none', background: 'none', fontSize: '28px' }}>&times;</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <SmartSelect options={occasionOptions} value={filterOccasion} onChange={setFilterOccasion} placeholder="Событие" />
+            </div>
+
+            <div className="filter-actions" style={{ marginTop: '25px', display: 'flex', gap: '10px' }}>
+              <button className="auth-btn btn-primary" onClick={() => setIsFilterOpen(false)}>Применить</button>
+              <button className="auth-btn" onClick={clearFilters} style={{ background: '#ffe0e9', color: '#e05d82' }}>Сбросить</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
