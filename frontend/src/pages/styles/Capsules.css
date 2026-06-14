@@ -1,0 +1,113 @@
+.capsules-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.capsule-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  height: 100dvh;
+  width: 100%;
+  position: relative;
+  background: var(--bg-app);
+}
+
+.capsule-canvas {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  background-color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 2px solid var(--primary-green);
+}
+
+.capsule-wardrobe {
+  height: 45%;
+  background: #ffffff;
+  border-top: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 10;
+  overflow-y: auto;
+}
+
+.capsule-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)) !important;
+  grid-auto-rows: minmax(80px, auto) !important;
+  align-items: start !important;
+  gap: 12px !important;
+  padding: 15px !important;
+  padding-bottom: 160px !important;
+  overflow-y: visible !important;
+  flex: 1;
+}
+
+.mini-card {
+  width: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+  position: static !important;
+  align-self: stretch !important;
+  min-width: 50px !important;
+  min-height: 50px !important;
+  background: #f9f9f9;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mini-card img {
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 50px;
+  min-height: 50px;
+  object-fit: contain;
+  display: block;
+}
+
+.rnd-item {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rnd-item.active {
+  border: 2px dashed var(--primary-green);
+}
+
+.resize-handle {
+  width: 20px;
+  height: 20px;
+  background-color: var(--primary-green);
+  border: 2px solid white;
+  border-radius: 50%;
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  z-index: 9999;
+}
+
+.delete-handle {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 24px;
+  height: 24px;
+  background: var(--deep-pink);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  cursor: pointer;
+}

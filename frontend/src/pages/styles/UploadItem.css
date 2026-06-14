@@ -1,0 +1,11 @@
+.upload-item-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.upload-item-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

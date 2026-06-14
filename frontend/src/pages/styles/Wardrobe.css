@@ -1,0 +1,14 @@
+.wardrobe-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.wardrobe-grid {
+  margin-top: 0;
+}
+
+.wardrobe-filter-actions {
+  margin-top: 25px;
+  display: flex;
+  gap: 10px;
+}

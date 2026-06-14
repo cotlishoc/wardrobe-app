@@ -1,156 +1,179 @@
-import { useState, useEffect, useRef } from 'react'; // Добавили useRef
+import { useState, useEffect, useRef } from 'react';
 import api from '../api';
 import { useNavigate } from 'react-router-dom';
 import SmartSelect from '../components/SmartSelect';
 import { API_URL } from '../config';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { CATEGORY_SEASON_MAP } from '../data/wardrobeRules';
+import './styles/UploadItem.css';
 
 function UploadItem() {
-  const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [dbData, setDbData] = useState({ categories: [], colors: [], styles: [], seasons: [], fits: [] });
-
-  const [category, setCategory] = useState('');
-  const [color, setColor] = useState('');
-  const [style, setStyle] = useState('Повседневный');
-  const [season, setSeason] = useState('Всесезон');
-  const [fit, setFit] = useState('Базовый');
-
   const navigate = useNavigate();
-  const fileInputRef = useRef(null); // Реф для инпута на ПК
+  const uploaderRef = useRef(null);
 
-  // Определяем платформу
-  const isNative = window.Capacitor?.getPlatform() !== 'web' && !!window.Capacitor;
+  // Флаги и системные стейты
+  const [saving, setSaving] = useState(false);
+  const [visionLoading, setVisionLoading] = useState(false);
+  const [dictionaries, setDictionaries] = useState({ categories: [], colors: [], styles: [], seasons: [], fits: [] });
+
+  // Файлы
+  const [rawFile, setRawFile] = useState(null);
+  const [imgPreview, setImgPreview] = useState(null);
+
+  // Поля формы
+  const [title, setTitle] = useState('');
+  const [cat, setCat] = useState('');
+  const [col, setCol] = useState('');
+  const [currentStyle, setCurrentStyle] = useState('');
+  const [currentSeason, setCurrentSeason] = useState('');
+  const [currentFit, setCurrentFit] = useState('');
+
+  const isMobileApp = !!window.Capacitor && window.Capacitor?.getPlatform() !== 'web';
 
   useEffect(() => {
-    const fetchData = async () => {
+    let active = true;
+    
+    (async () => {
       try {
-        const [c, cl, st, se, fi] = await Promise.all([
+        const [resCat, resCol, resStyle, resSeason, resFit] = await Promise.all([
           api.get('/categories'), api.get('/colors'),
           api.get('/styles'), api.get('/seasons'), api.get('/fits')
         ]);
-        setDbData({ categories: c.data, colors: cl.data, styles: st.data, seasons: se.data, fits: fi.data });
-      } catch (e) { console.error("Ошибка справочников"); }
-    };
-    fetchData();
+        
+        if (active) {
+          setDictionaries({ 
+            categories: resCat.data, 
+            colors: resCol.data, 
+            styles: resStyle.data, 
+            seasons: resSeason.data, 
+            fits: resFit.data 
+          });
+        }
+      } catch (err) { 
+        console.warn("Meta dictionaries loading error:", err); 
+      }
+    })();
+
+    return () => { active = false; };
   }, []);
 
-  const processAndAnalyze = async (fileObj) => {
-    setFile(fileObj);
-    setIsAnalyzing(true);
-    const formData = new FormData();
-    formData.append('file', fileObj);
+  const runImageAnalysis = async (targetBlob) => {
+    setRawFile(targetBlob);
+    setVisionLoading(true);
+    
+    const pack = new FormData();
+    pack.append('file', targetBlob);
 
     try {
-      const res = await api.post('/items/analyze', formData);
-      setCategory(res.data.category);
-      setColor(res.data.color);
-      setSeason(CATEGORY_SEASON_MAP[res.data.category] || "Всесезон");
-      setPreview(`${API_URL}/${res.data.image_path}`);
-      if (!name) setName(res.data.category || "Новая вещь");
-    } catch (err) {
-      console.error("Ошибка ИИ");
-    } finally { setIsAnalyzing(false); }
-  };
-
-  // Вызывается на ПК
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (!selectedFile) return;
-    setPreview(URL.createObjectURL(selectedFile));
-    processAndAnalyze(selectedFile);
-  };
-
-  // Главная функция клика по области фото
-  const handleImageAreaClick = () => {
-    if (isNative) {
-      takePhoto();
-    } else {
-      fileInputRef.current.click(); // На ПК открываем обычный выбор файла
+      const { data } = await api.post('/items/analyze', pack);
+      setCat(data.category);
+      setCol(data.color);
+      setCurrentSeason(CATEGORY_SEASON_MAP[data.category] || "Всесезон");
+      setImgPreview(`${API_URL}/${data.image_path}`);
+      
+      if (!title) {
+        setTitle(data.category || "Новая вещь");
+      }
+    } catch (apiErr) {
+      console.error("AI analysis route error:", apiErr);
+    } finally { 
+      setVisionLoading(false); 
     }
   };
 
-  // Вызывается на смартфоне
-  const takePhoto = async () => {
-    try {
-      const image = await Camera.getPhoto({
-        quality: 90,
-        allowEditing: false,
-        resultType: CameraResultType.Uri,
-        source: CameraSource.Prompt // Показывает выбор Камера/Галерея
-      });
-      setPreview(image.webPath);
-      const response = await fetch(image.webPath);
-      const blob = await response.blob();
-      const fileObj = new File([blob], "item.jpg", { type: "image/jpeg" });
-      processAndAnalyze(fileObj);
-    } catch (e) { console.log("Отмена"); }
+  const onFileSelection = (evt) => {
+    const picked = evt.target.files?.[0];
+    if (!picked) return;
+    setImgPreview(URL.createObjectURL(picked));
+    runImageAnalysis(picked);
   };
 
-  const handleSubmit = async (e) => {
+  const handleMediaTrigger = async () => {
+    if (isMobileApp) {
+      try {
+        const nativeImg = await Camera.getPhoto({
+          quality: 90,
+          allowEditing: false,
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Prompt
+        });
+        
+        setImgPreview(nativeImg.webPath);
+        const webRes = await fetch(nativeImg.webPath);
+        const chunk = await webRes.blob();
+        const constructedFile = new File([chunk], "item.jpg", { type: "image/jpeg" });
+        runImageAnalysis(constructedFile);
+      } catch (cameraErr) { 
+        console.log("User backed out from camera/gallery selection"); 
+      }
+    } else {
+      uploaderRef.current?.click(); 
+    }
+  };
+
+  const onFormSubmit = async (e) => {
     e.preventDefault();
-    if (!file) return alert("Добавьте фото!");
-    setLoading(true);
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('category', category);
-    formData.append('color', color);
-    formData.append('style', style);
-    formData.append('season', season);
-    formData.append('fit', fit);
-    formData.append('file', file);
+    if (!rawFile) return alert("Добавьте фото!");
+    
+    setSaving(true);
+    const formPayload = new FormData();
+    formPayload.append('name', title);
+    formPayload.append('category', cat);
+    formPayload.append('color', col);
+    formPayload.append('style', currentStyle);
+    formPayload.append('season', currentSeason);
+    formPayload.append('fit', currentFit);
+    formPayload.append('file', rawFile);
 
     try {
-      await api.post('/items/', formData);
+      await api.post('/items/', formPayload);
       navigate('/wardrobe');
-    } catch (error) { alert('Ошибка сохранения'); } finally { setLoading(false); }
+    } catch (err) { 
+      alert(err.response?.data?.detail || 'Ошибка сохранения'); 
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   return (
     <div className="page-padding">
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-        <button onClick={() => navigate(-1)} className="back-btn">←</button>
+        <button type="button" onClick={() => navigate(-1)} className="back-btn">←</button>
         <h2 style={{ margin: '0 auto', color: 'var(--primary-green)' }}>Новая вещь</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="form-container">
-        {/* Клик теперь вызывает нашу умную функцию */}
-        <div className="upload-area" onClick={handleImageAreaClick} style={{ position: 'relative' }}>
-          {isAnalyzing && (
+      <form onSubmit={onFormSubmit} className="form-container">
+        <div className="upload-area" onClick={handleMediaTrigger} style={{ position: 'relative' }}>
+          {visionLoading && (
             <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(255, 196, 214, 0.8)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10, borderRadius: '24px' }}>
               <div className="spinner"></div>
               <span style={{ color: 'var(--primary-green)', fontWeight: 'bold', marginTop: '10px' }}>ИИ анализирует...</span>
             </div>
           )}
-          {preview ? (
-            <img src={preview} alt="Preview" className="upload-preview" />
+          {imgPreview ? (
+            <img src={imgPreview} alt="Preview" className="upload-preview" />
           ) : (
             <div style={{ textAlign: 'center', color: '#a87b89' }}>
-              <p style={{ fontSize: '40px' }}>📸</p>
+              <p style={{ fontSize: '40px' }}></p>
               <p>Нажми, чтобы добавить фото</p>
             </div>
           )}
-          {/* Скрытый инпут для ПК */}
-          <input type="file" ref={fileInputRef} onChange={handleFileChange} hidden accept="image/*" />
+          <input type="file" ref={uploaderRef} onChange={onFileSelection} hidden accept="image/*" />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
           <label style={{ fontSize: '12px', fontWeight: 'bold', marginLeft: '5px' }}>НАЗВАНИЕ</label>
-          <input type="text" className="custom-input" placeholder="Название" value={name} onChange={e => setName(e.target.value)} required />
+          <input type="text" className="custom-input" placeholder="Название" value={title} onChange={e => setTitle(e.target.value)} required />
           
-          <SmartSelect options={dbData.categories} value={category} onChange={(v) => { setCategory(v); setSeason(CATEGORY_SEASON_MAP[v] || season); }} placeholder="Категория" />
-          <SmartSelect options={dbData.colors} value={color} onChange={setColor} placeholder="Цвет" />
-          <SmartSelect options={dbData.styles} value={style} onChange={setStyle} placeholder="Стиль" />
-          <SmartSelect options={dbData.fits} value={fit} onChange={setFit} placeholder="Крой" />
-          <SmartSelect options={dbData.seasons} value={season} onChange={setSeason} placeholder="Сезон" />
+          <SmartSelect options={dictionaries.categories} value={cat} onChange={(v) => { setCat(v); setCurrentSeason(CATEGORY_SEASON_MAP[v] || currentSeason); }} placeholder="Категория" />
+          <SmartSelect options={dictionaries.colors} value={col} onChange={setCol} placeholder="Цвет" />
+          <SmartSelect options={dictionaries.styles} value={currentStyle} onChange={setCurrentStyle} placeholder="Стиль" />
+          <SmartSelect options={dictionaries.fits} value={currentFit} onChange={setCurrentFit} placeholder="Крой" />
+          <SmartSelect options={dictionaries.seasons} value={currentSeason} onChange={setCurrentSeason} placeholder="Сезон" />
         </div>
 
-        <button type="submit" className="auth-btn btn-primary" disabled={loading || isAnalyzing}>
-          {loading ? 'Сохранение...' : 'Сохранить в гардероб'}
+        <button type="submit" className="auth-btn btn-primary" disabled={saving || visionLoading}>
+          {saving ? 'Сохранение...' : 'Сохранить в гардероб'}
         </button>
       </form>
     </div>

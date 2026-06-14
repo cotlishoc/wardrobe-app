@@ -1,50 +1,44 @@
 import React, { useState } from 'react';
-import api from '../api'; // Импортируем наш настроенный модуль API
+import api from '../api';
+import './styles/Account.css';
 
 function Account({ onLogout }) {
-  // ЧИТАЕМ ИЗ ПАМЯТИ ПРИ ИНИЦИАЛИЗАЦИИ
-  const initialName = localStorage.getItem('userName') || 'Пользователь';
-  const initialEmail = localStorage.getItem('userEmail') || 'email@example.com';
+  const cachedName = localStorage.getItem('userName') || 'Пользователь';
+  const cachedEmail = localStorage.getItem('userEmail') || 'email@example.com';
 
-  // Состояния для модального окна и данных формы
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editData, setEditData] = useState({
-    name: initialName,
-    email: initialEmail,
+  // Окно редактирования + стейт формы
+  const [showEdit, setShowEdit] = useState(false);
+  const [form, setForm] = useState({
+    name: cachedName,
+    email: cachedEmail,
     current_password: '',
     new_password: ''
   });
 
-  // Получаем первую букву для аватара
-  const avatarLetter = initialName ? initialName[0].toUpperCase() : 'U';
+  const firstLetter = cachedName ? cachedName.charAt(0).toUpperCase() : 'U';
 
-  // Обработчик отправки измененных данных на бэкенд
-  const handleUpdateProfile = async (e) => {
-    e.preventDefault();
+  const sendProfileUpdate = async (evt) => {
+    evt.preventDefault();
     
-    if (!editData.current_password.trim()) {
-      return alert("Введите текущий пароль для подтверждения изменений!");
+    if (!form.current_password.trim()) {
+      alert("Введите текущий пароль для подтверждения изменений!");
+      return;
     }
 
     try {
-      // Отправляем PUT запрос на бэкенд в соответствии со схемой UserUpdate
-      const res = await api.put('/users/me', editData);
+      const { data } = await api.put('/users/me', form);
       
-      // Обновляем локальное хранилище новыми данными
-      localStorage.setItem('userName', res.data.name);
-      localStorage.setItem('userEmail', res.data.email);
+      localStorage.setItem('userName', data.name);
+      localStorage.setItem('userEmail', data.email);
       
       alert("Профиль успешно обновлен!");
-      setIsEditModalOpen(false);
-      
-      // Сбрасываем поля паролей в черновике
-      setEditData(prev => ({ ...prev, current_password: '', new_password: '' }));
-      
-      // Перезагружаем страницу для синхронизации всех компонентов интерфейса
+      setShowEdit(false);
+      setForm(old => ({ ...old, current_password: '', new_password: '' }));
       window.location.reload();
-    } catch (error) {
-      console.error(error);
-      alert(error.response?.data?.detail || "Не удалось обновить профиль. Проверьте введенные данные.");
+    } catch (err) {
+      console.warn('Profile update failed:', err);
+      const errMsg = err.response?.data?.detail || "Не удалось обновить профиль. Проверьте введенные данные.";
+      alert(errMsg);
     }
   };
 
@@ -53,10 +47,9 @@ function Account({ onLogout }) {
         height: '100%', 
         display: 'flex', 
         flexDirection: 'column',
-        backgroundColor: '#f8f9fa' // Легкий фон для контраста
+        backgroundColor: '#f8f9fa' 
     }}>
       
-      {/* ДЕКОРАТИВНАЯ ШАПКА ПРОФИЛЯ */}
       <div style={{ 
           display: 'flex', 
           flexDirection: 'column', 
@@ -81,21 +74,18 @@ function Account({ onLogout }) {
             boxShadow: '0 8px 20px rgba(52, 94, 55, 0.2)',
             border: '4px solid white'
         }}>
-          {avatarLetter}
+          {firstLetter}
         </div>
         
-        <h2 style={{ margin: 0, color: 'var(--primary-green)', fontSize: '24px' }}>{initialName}</h2>
-        <p style={{ color: '#888', marginTop: '5px', fontSize: '14px' }}>{initialEmail}</p>
+        <h2 style={{ margin: 0, color: 'var(--primary-green)', fontSize: '24px' }}>{cachedName}</h2>
+        <p style={{ color: '#888', marginTop: '5px', fontSize: '14px' }}>{cachedEmail}</p>
       </div>
 
-      {/* ФУНКЦИОНАЛЬНЫЙ БЛОК НАСТРОЕК */}
       <div style={{ flex: 1, padding: '0 20px' }}>
         <div className="form-container" style={{ background: 'white', padding: '20px', borderRadius: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
-
-            {/* Кнопка вызова модального окна редактирования */}
             <button 
               className="auth-btn" 
-              onClick={() => setIsEditModalOpen(true)} 
+              onClick={() => setShowEdit(true)} 
               style={{ 
                 background: 'var(--light-green)', 
                 color: 'var(--primary-green)', 
@@ -106,12 +96,11 @@ function Account({ onLogout }) {
                 fontSize: '14px'
               }}
             >
-              ✏️ Редактировать профиль
+              Редактировать профиль
             </button>
         </div>
       </div>
 
-      {/* НИЖНЯЯ ЧАСТЬ С КНОПКОЙ ВЫХОДА */}
       <div style={{ padding: '20px', paddingBottom: '120px' }}>
         <button 
           onClick={onLogout} 
@@ -125,42 +114,41 @@ function Account({ onLogout }) {
             boxShadow: '0 4px 12px rgba(255, 77, 77, 0.1)'
           }}
         >
-          <span style={{ marginRight: '10px' }}>🚪</span> Выйти из системы
+          <span style={{ marginRight: '10px' }}></span> Выйти из системы
         </button>
       </div>
 
-      {/* МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ПРОФИЛЯ */}
-      {isEditModalOpen && (
-        <div className="filter-modal-overlay" onClick={() => setIsEditModalOpen(false)}>
+      {showEdit && (
+        <div className="filter-modal-overlay" onClick={() => setShowEdit(false)}>
           <div className="filter-modal" onClick={e => e.stopPropagation()} style={{ padding: '25px 20px', borderRadius: '24px' }}>
             <h3 style={{ marginBottom: '10px', color: 'var(--primary-green)' }}>Настройки профиля</h3>
             <p style={{ fontSize: '12px', color: '#666', textAlign: 'center', marginBottom: '20px' }}>Измените необходимые личные данные</p>
             
-            <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={sendProfileUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--primary-green)', marginLeft: '5px' }}>ИМЯ ПОЛЬЗОВАТЕЛЯ</label>
-                <input type="text" className="custom-input" placeholder="Имя" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} required />
+                <input type="text" className="custom-input" placeholder="Имя" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--primary-green)', marginLeft: '5px' }}>ЭЛЕКТРОННАЯ ПОЧТА</label>
-                <input type="email" className="custom-input" placeholder="Email" value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} required />
+                <input type="email" className="custom-input" placeholder="Email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} required />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--primary-green)', marginLeft: '5px' }}>НОВЫЙ ПАРОЛЬ (ОПЦИОНАЛЬНО)</label>
-                <input type="password" className="custom-input" placeholder="Оставьте пустым, если не хотите менять" value={editData.new_password} onChange={e => setEditData({...editData, new_password: e.target.value})} />
+                <input type="password" className="custom-input" placeholder="Оставьте пустым, если не хотите менять" value={form.new_password} onChange={e => setForm({...form, new_password: e.target.value})} />
               </div>
 
               <hr style={{ border: 'none', borderTop: '1px dashed #ddd', margin: '10px 0' }} />
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'red', marginLeft: '5px' }}>ТЕКУЩИЙ ПАРОЛЬ ДЛЯ ПОДТВЕРЖДЕНИЯ *</label>
-                <input type="password" className="custom-input" placeholder="Введите ваш текущий пароль" value={editData.current_password} onChange={e => setEditData({...editData, current_password: e.target.value})} required />
+                <input type="password" className="custom-input" placeholder="Введите ваш текущий пароль" value={form.current_password} onChange={e => setForm({...form, current_password: e.target.value})} required />
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-                <button type="button" className="auth-btn" onClick={() => setIsEditModalOpen(false)} style={{ background: '#f0f0f0', flex: 1 }}>Отмена</button>
+                <button type="button" className="auth-btn" onClick={() => setShowEdit(false)} style={{ background: '#f0f0f0', flex: 1 }}>Отмена</button>
                 <button type="submit" className="auth-btn btn-primary" style={{ flex: 1.5 }}>Сохранить</button>
               </div>
             </form>

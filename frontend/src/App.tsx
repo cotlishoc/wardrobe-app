@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { App as CapApp } from '@capacitor/app';
 
-// Импорт страниц
 import Wardrobe from './pages/Wardrobe';
 import UploadItem from './pages/UploadItem';
 import Capsules from './pages/Capsules';
@@ -12,11 +11,10 @@ import Auth from './pages/Auth';
 import EditItem from './pages/EditItem';
 import Preview from './pages/Preview';
 
-// Импорт компонентов и стилей
 import BottomNav from './components/BottomNav';
-import './App.css';
+import './pages/styles/AppStyles.css';
+import './pages/styles/shared.css';
 
-// 1. Создаем внутренний компонент для логики
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,7 +29,6 @@ function AppContent() {
   // Слушатель кнопки "Назад" для Android
   useEffect(() => {
     const backListener = CapApp.addListener('backButton', () => {
-      // Список страниц, с которых нажатие "Назад" выводит из приложения
       const rootPages = ['/wardrobe', '/login'];
       
       if (rootPages.includes(location.pathname)) {

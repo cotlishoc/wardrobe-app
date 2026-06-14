@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
 import { Link, useNavigate } from 'react-router-dom';
-import SmartSelect from '../components/SmartSelect'; 
+import SmartSelect from '../components/SmartSelect';
 import { API_URL } from '../config';
+import './styles/Wardrobe.css';
 
 function Wardrobe() {
   const navigate = useNavigate();
@@ -88,7 +89,7 @@ function Wardrobe() {
    return (
      <div className="page-padding">
        
-       {/* ОБНОВЛЕННАЯ ВЕРХНЯЯ ПАНЕЛЬ (как в Капсулах) */}
+       {/* ОБНОВЛЕННАЯ ВЕРХНЯЯ ПАНЕЛЬ */}
        <div className="top-bar" style={{ gap: '10px', marginBottom: '15px' }}>
          <div className="search-container" style={{ flex: 1, position: 'relative' }}>
            <input 

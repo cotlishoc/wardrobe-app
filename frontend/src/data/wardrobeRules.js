@@ -102,9 +102,7 @@ export const CATEGORY_SEASON_MAP = {
     "Кожаные куртки": "Демисезон"
 };
 
-// Добавь/обнови эти правила в wardrobeRules.js
-
-// 1. Матрица совместимых стилей (Кросс-стили)
+// 1. Матрица совместимых стилей 
 export const STYLE_COMPATIBILITY = {
     "Повседневный": ["Повседневный", "Уличный", "Минимализм", "Спортивный", "Романтика"],
     "Деловой": ["Деловой", "Минимализм", "Классика"],
@@ -117,13 +115,11 @@ export const STYLE_COMPATIBILITY = {
 
 // 2. Логика сезонных наслоений
 export const SEASON_COMPATIBILITY = {
-    "Лето": ["Лето", "Всесезон", "Демисезон"], // Летнюю майку можно под куртку (демисезон)
-    "Зима": ["Зима", "Всесезон", "Демисезон"], // Зимнее пальто на демисезонный свитер
-    "Демисезон": ["Лето", "Зима", "Демисезон", "Всесезон"], // Демисезон — универсальный мост
+    "Лето": ["Лето", "Всесезон", "Демисезон"], 
+    "Зима": ["Зима", "Всесезон", "Демисезон"], 
+    "Демисезон": ["Лето", "Зима", "Демисезон", "Всесезон"], 
     "Всесезон": ["Лето", "Зима", "Демисезон", "Всесезон"]
 };
-
-// Добавь это в wardrobeRules.js
 
 export const CATEGORY_GROUPS = {
     tops_layer1: ["Футболки и майки", "Топы"],
@@ -135,12 +131,12 @@ export const CATEGORY_GROUPS = {
     accessories: ["Сумки", "Аксессуары", "Украшения", "Часы"]
 };
 
-// Правила: какая ГРУППА с какой ГРУППОЙ может сочетаться
+// какая ГРУППА с какой ГРУППОЙ может сочетаться
 export const GROUP_COMPATIBILITY = {
     tops_layer1: ["bottoms", "tops_layer2", "outerwear", "shoes", "accessories"],
     tops_layer2: ["tops_layer1", "bottoms", "full_body", "outerwear", "shoes", "accessories"],
     bottoms: ["tops_layer1", "tops_layer2", "outerwear", "shoes", "accessories"],
-    full_body: ["tops_layer2", "outerwear", "shoes", "accessories"], // Платье не носится с брюками (обычно)
+    full_body: ["tops_layer2", "outerwear", "shoes", "accessories"], 
     outerwear: ["tops_layer1", "tops_layer2", "bottoms", "full_body", "shoes", "accessories"],
     shoes: ["tops_layer1", "tops_layer2", "bottoms", "full_body", "outerwear", "accessories"],
     accessories: ["tops_layer1", "tops_layer2", "bottoms", "full_body", "outerwear", "shoes"]

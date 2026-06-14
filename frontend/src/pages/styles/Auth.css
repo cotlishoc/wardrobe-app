@@ -1,0 +1,30 @@
+.auth-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100dvh;
+  background-color: #fff;
+}
+
+.auth-switch {
+  display: flex;
+  background: var(--light-green);
+  padding: 5px;
+  border-radius: 15px;
+  margin-bottom: 30px;
+}
+
+.auth-switch button {
+  flex: 1;
+  border: none;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.auth-switch button.active {
+  background: var(--primary-green);
+  color: white;
+}

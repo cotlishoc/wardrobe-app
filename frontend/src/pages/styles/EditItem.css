@@ -1,0 +1,11 @@
+.edit-item-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.edit-item-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

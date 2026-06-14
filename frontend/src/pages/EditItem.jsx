@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import SmartSelect from '../components/SmartSelect';
 import { API_URL } from '../config';
+import './styles/EditItem.css';
 
 function EditItem() {
   const { id } = useParams();
@@ -108,7 +109,7 @@ function EditItem() {
               boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
             }}
           >
-            {isAILoading ? '⌛...' : '🪄 Определить ИИ'}
+            {isAILoading ? '...' : 'Определить ИИ'}
           </button>
         </div>
 

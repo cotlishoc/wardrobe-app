@@ -1,0 +1,10 @@
+.all-capsules-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.all-capsules-filter-actions {
+  margin-top: 25px;
+  display: flex;
+  gap: 10px;
+}

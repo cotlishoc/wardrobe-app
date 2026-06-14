@@ -3,7 +3,6 @@ import { NavLink } from 'react-router-dom';
 function BottomNav() {
   return (
     <nav className="bottom-nav">
-      {/* Используем NavLink, он сам добавляет класс 'active' */}
       <NavLink to="/preview" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
         примерочная
       </NavLink>

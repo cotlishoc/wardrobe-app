@@ -8,6 +8,7 @@ import {
   CATEGORY_LAYERS, COLOR_TEMP, CATEGORY_SEASON_MAP, FIT_RULES,
   CATEGORY_GROUPS, GROUP_COMPATIBILITY 
 } from '../data/wardrobeRules';
+import './styles/Preview.css';
 
 function Preview() {
   const [file, setFile] = useState(null); 
@@ -178,7 +179,7 @@ function Preview() {
                     marginTop: '15px',
                     fontSize: '14px' 
                 }}>
-                    ИИ анализирует вещь... ✨
+                    ИИ анализирует вещь... 
                 </span>
             </div>
         )}
